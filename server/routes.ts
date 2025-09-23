@@ -105,6 +105,53 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // New earning methods
+  app.post('/api/economy/fish', requireAuth, async (req, res) => {
+    try {
+      const result = await EconomyService.fish(req.user!.username);
+      res.json(result);
+    } catch (error) {
+      res.status(400).json({ error: (error as Error).message });
+    }
+  });
+
+  app.post('/api/economy/mine', requireAuth, async (req, res) => {
+    try {
+      const result = await EconomyService.mine(req.user!.username);
+      res.json(result);
+    } catch (error) {
+      res.status(400).json({ error: (error as Error).message });
+    }
+  });
+
+  app.post('/api/economy/vote', requireAuth, async (req, res) => {
+    try {
+      const result = await EconomyService.vote(req.user!.username);
+      res.json(result);
+    } catch (error) {
+      res.status(400).json({ error: (error as Error).message });
+    }
+  });
+
+  app.post('/api/economy/adventure', requireAuth, async (req, res) => {
+    try {
+      const result = await EconomyService.adventure(req.user!.username);
+      res.json(result);
+    } catch (error) {
+      res.status(400).json({ error: (error as Error).message });
+    }
+  });
+
+  app.get('/api/economy/achievements/:username', requireAuth, async (req, res) => {
+    try {
+      const { username } = req.params;
+      const result = await EconomyService.checkAchievements(username);
+      res.json(result);
+    } catch (error) {
+      res.status(400).json({ error: (error as Error).message });
+    }
+  });
+
   // Game routes
   app.post('/api/games/blackjack', requireAuth, async (req, res) => {
     try {

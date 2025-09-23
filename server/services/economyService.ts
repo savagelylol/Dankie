@@ -28,6 +28,7 @@ export class EconomyService {
       user: username,
       type: 'transfer',
       amount,
+      targetUser: null,
       description: `Deposited ${amount} coins to bank`
     });
 
@@ -58,6 +59,7 @@ export class EconomyService {
       user: username,
       type: 'transfer',
       amount: netAmount,
+      targetUser: null,
       description: `Withdrew ${amount} coins from bank (${fee} fee)`
     });
 
@@ -121,7 +123,8 @@ export class EconomyService {
     await storage.createNotification({
       user: targetUsername,
       message: `${username} sent you ${amount} coins${message ? `: ${message}` : ''}`,
-      type: 'system'
+      type: 'system',
+      read: false
     });
 
     return { 
@@ -148,8 +151,8 @@ export class EconomyService {
     const now = Date.now();
     const robCooldown = 2 * 60 * 60 * 1000; // 2 hours
     
-    if (user.lastRob && (now - user.lastRob) < robCooldown) {
-      const remaining = robCooldown - (now - user.lastRob);
+    if (user.lastRob && (now - user.lastRob.getTime()) < robCooldown) {
+      const remaining = robCooldown - (now - user.lastRob.getTime());
       throw new Error(`Rob cooldown: ${Math.ceil(remaining / (60 * 1000))} minutes remaining`);
     }
 
@@ -185,7 +188,7 @@ export class EconomyService {
       
       await storage.updateUser(user.id, {
         coins: user.coins + stolenAmount,
-        lastRob: now
+        lastRob: new Date(now)
       });
 
       await storage.updateUser(targetUser.id, {
@@ -213,7 +216,8 @@ export class EconomyService {
       await storage.createNotification({
         user: targetUsername,
         message: `${username} robbed ${stolenAmount} coins from you! 💸`,
-        type: 'rob'
+        type: 'rob',
+        read: false
       });
 
       return {
@@ -229,7 +233,7 @@ export class EconomyService {
 
       await storage.updateUser(user.id, {
         coins: Math.max(0, user.coins - totalLoss),
-        lastRob: now
+        lastRob: new Date(now)
       });
 
       await storage.createTransaction({
@@ -244,7 +248,8 @@ export class EconomyService {
       await storage.createNotification({
         user: targetUsername,
         message: `${username} tried to rob you but failed! They lost ${totalLoss} coins 😂`,
-        type: 'rob'
+        type: 'rob',
+        read: false
       });
 
       return {
@@ -264,8 +269,8 @@ export class EconomyService {
     const now = Date.now();
     const dailyCooldown = 24 * 60 * 60 * 1000; // 24 hours
 
-    if (user.lastDailyClaim && (now - user.lastDailyClaim) < dailyCooldown) {
-      const remaining = dailyCooldown - (now - user.lastDailyClaim);
+    if (user.lastDailyClaim && (now - user.lastDailyClaim.getTime()) < dailyCooldown) {
+      const remaining = dailyCooldown - (now - user.lastDailyClaim.getTime());
       throw new Error(`Daily cooldown: ${Math.ceil(remaining / (60 * 60 * 1000))} hours remaining`);
     }
 
@@ -285,7 +290,7 @@ export class EconomyService {
     const updates: any = {
       coins: user.coins + amount,
       xp: user.xp + xpGain,
-      lastDailyClaim: now
+      lastDailyClaim: new Date(now)
     };
 
     if (bonusItem) {
@@ -308,6 +313,7 @@ export class EconomyService {
       user: username,
       type: 'earn',
       amount,
+      targetUser: null,
       description: `Daily reward: ${amount} coins, ${xpGain} XP${bonusItem ? ` + ${bonusItem.name}` : ''}`
     });
 
@@ -328,8 +334,8 @@ export class EconomyService {
     const now = Date.now();
     const workCooldown = 30 * 60 * 1000; // 30 minutes
 
-    if (user.lastWork && (now - user.lastWork) < workCooldown) {
-      const remaining = workCooldown - (now - user.lastWork);
+    if (user.lastWork && (now - user.lastWork.getTime()) < workCooldown) {
+      const remaining = workCooldown - (now - user.lastWork.getTime());
       throw new Error(`Work cooldown: ${Math.ceil(remaining / (60 * 1000))} minutes remaining`);
     }
 
@@ -350,13 +356,14 @@ export class EconomyService {
     await storage.updateUser(user.id, {
       coins: user.coins + amount,
       xp: user.xp + xpGain,
-      lastWork: now
+      lastWork: new Date(now)
     });
 
     await storage.createTransaction({
       user: username,
       type: 'earn',
       amount,
+      targetUser: null,
       description: `Work as ${job.name}: ${amount} coins, ${xpGain} XP`
     });
 
@@ -377,8 +384,8 @@ export class EconomyService {
     const now = Date.now();
     const begCooldown = 5 * 60 * 1000; // 5 minutes
 
-    if (user.lastBeg && (now - user.lastBeg) < begCooldown) {
-      const remaining = begCooldown - (now - user.lastBeg);
+    if (user.lastBeg && (now - user.lastBeg.getTime()) < begCooldown) {
+      const remaining = begCooldown - (now - user.lastBeg.getTime());
       throw new Error(`Beg cooldown: ${Math.ceil(remaining / (60 * 1000))} minutes remaining`);
     }
 
@@ -391,7 +398,7 @@ export class EconomyService {
         "You got distracted by a cute doggo and forgot to beg"
       ];
       
-      await storage.updateUser(user.id, { lastBeg: now });
+      await storage.updateUser(user.id, { lastBeg: new Date(now) });
       
       return {
         success: false,
@@ -407,13 +414,14 @@ export class EconomyService {
     await storage.updateUser(user.id, {
       coins: user.coins + amount,
       xp: user.xp + xpGain,
-      lastBeg: now
+      lastBeg: new Date(now)
     });
 
     await storage.createTransaction({
       user: username,
       type: 'earn',
       amount,
+      targetUser: null,
       description: `Begging: ${amount} coins, ${xpGain} XP`
     });
 
@@ -434,8 +442,8 @@ export class EconomyService {
     const now = Date.now();
     const searchCooldown = 15 * 60 * 1000; // 15 minutes
 
-    if (user.lastSearch && (now - user.lastSearch) < searchCooldown) {
-      const remaining = searchCooldown - (now - user.lastSearch);
+    if (user.lastSearch && (now - user.lastSearch.getTime()) < searchCooldown) {
+      const remaining = searchCooldown - (now - user.lastSearch.getTime());
       throw new Error(`Search cooldown: ${Math.ceil(remaining / (60 * 1000))} minutes remaining`);
     }
 
@@ -464,7 +472,7 @@ export class EconomyService {
     const updates: any = {
       coins: user.coins + amount,
       xp: user.xp + 2,
-      lastSearch: now
+      lastSearch: new Date(now)
     };
 
     if (foundItem) {
@@ -487,6 +495,7 @@ export class EconomyService {
       user: username,
       type: 'earn',
       amount,
+      targetUser: null,
       description: `Searched ${location}: ${amount} coins${foundItem ? ` + ${foundItem.name}` : ''}`
     });
 
@@ -505,7 +514,7 @@ export class EconomyService {
     const user = await storage.getUserByUsername(username);
     if (!user || user.bank <= 0) return;
 
-    const daysSinceLastActive = (Date.now() - user.lastActive) / (24 * 60 * 60 * 1000);
+    const daysSinceLastActive = (Date.now() - user.lastActive.getTime()) / (24 * 60 * 60 * 1000);
     if (daysSinceLastActive < 1) return; // Must be at least 1 day
 
     const dailyRate = 0.005; // 0.5% daily
@@ -521,10 +530,273 @@ export class EconomyService {
         user: username,
         type: 'earn',
         amount: interest,
+        targetUser: null,
         description: `Bank interest: ${daysToApply} day(s) at 0.5% daily`
       });
     }
 
     return interest;
+  }
+
+  // Fishing system
+  static async fish(username: string) {
+    const user = await storage.getUserByUsername(username);
+    if (!user) throw new Error("User not found");
+
+    const now = Date.now();
+    const fishCooldown = 20 * 60 * 1000; // 20 minutes
+
+    if (user.lastFish && (now - user.lastFish.getTime()) < fishCooldown) {
+      const remaining = fishCooldown - (now - user.lastFish.getTime());
+      throw new Error(`Fishing cooldown: ${Math.ceil(remaining / (60 * 1000))} minutes remaining`);
+    }
+
+    const fishTypes = [
+      { name: 'Pepe Fish', coins: 50, chance: 0.4, xp: 8 },
+      { name: 'Doge Fish', coins: 100, chance: 0.3, xp: 12 },
+      { name: 'Diamond Fish', coins: 200, chance: 0.15, xp: 20 },
+      { name: 'Golden Fish', coins: 500, chance: 0.1, xp: 30 },
+      { name: 'Legendary Fish', coins: 1000, chance: 0.05, xp: 50 }
+    ];
+
+    // Random fish selection based on chance
+    const rand = Math.random();
+    let cumulativeChance = 0;
+    let caughtFish = fishTypes[0]; // default fallback
+    
+    for (const fish of fishTypes.reverse()) {
+      cumulativeChance += fish.chance;
+      if (rand <= cumulativeChance) {
+        caughtFish = fish;
+        break;
+      }
+    }
+
+    await storage.updateUser(user.id, {
+      coins: user.coins + caughtFish.coins,
+      xp: user.xp + caughtFish.xp,
+      lastFish: new Date(now)
+    });
+
+    await storage.createTransaction({
+      user: username,
+      type: 'fish',
+      amount: caughtFish.coins,
+      targetUser: null,
+      description: `Caught a ${caughtFish.name}: ${caughtFish.coins} coins, ${caughtFish.xp} XP`
+    });
+
+    return {
+      success: true,
+      fish: caughtFish,
+      newBalance: user.coins + caughtFish.coins,
+      newXP: user.xp + caughtFish.xp,
+      message: `You caught a ${caughtFish.name} and earned ${caughtFish.coins} coins! 🎣`
+    };
+  }
+
+  // Mining system  
+  static async mine(username: string) {
+    const user = await storage.getUserByUsername(username);
+    if (!user) throw new Error("User not found");
+
+    const now = Date.now();
+    const mineCooldown = 45 * 60 * 1000; // 45 minutes
+
+    if (user.lastMine && (now - user.lastMine.getTime()) < mineCooldown) {
+      const remaining = mineCooldown - (now - user.lastMine.getTime());
+      throw new Error(`Mining cooldown: ${Math.ceil(remaining / (60 * 1000))} minutes remaining`);
+    }
+
+    const ores = [
+      { name: 'Coal', coins: 80, chance: 0.5, xp: 6 },
+      { name: 'Iron', coins: 150, chance: 0.25, xp: 12 },
+      { name: 'Gold', coins: 300, chance: 0.15, xp: 20 },
+      { name: 'Diamond', coins: 800, chance: 0.08, xp: 40 },
+      { name: 'Mithril', coins: 1500, chance: 0.02, xp: 80 }
+    ];
+
+    const rand = Math.random();
+    let cumulativeChance = 0;
+    let minedOre = ores[0];
+    
+    for (const ore of ores.reverse()) {
+      cumulativeChance += ore.chance;
+      if (rand <= cumulativeChance) {
+        minedOre = ore;
+        break;
+      }
+    }
+
+    await storage.updateUser(user.id, {
+      coins: user.coins + minedOre.coins,
+      xp: user.xp + minedOre.xp,
+      lastMine: new Date(now)
+    });
+
+    await storage.createTransaction({
+      user: username,
+      type: 'mine',
+      amount: minedOre.coins,
+      targetUser: null,
+      description: `Mined ${minedOre.name}: ${minedOre.coins} coins, ${minedOre.xp} XP`
+    });
+
+    return {
+      success: true,
+      ore: minedOre,
+      newBalance: user.coins + minedOre.coins,
+      newXP: user.xp + minedOre.xp,
+      message: `You mined ${minedOre.name} and earned ${minedOre.coins} coins! ⛏️`
+    };
+  }
+
+  // Vote/Survey system
+  static async vote(username: string) {
+    const user = await storage.getUserByUsername(username);
+    if (!user) throw new Error("User not found");
+
+    const now = Date.now();
+    const voteCooldown = 12 * 60 * 60 * 1000; // 12 hours
+
+    if (user.lastVote && (now - user.lastVote.getTime()) < voteCooldown) {
+      const remaining = voteCooldown - (now - user.lastVote.getTime());
+      throw new Error(`Vote cooldown: ${Math.ceil(remaining / (60 * 60 * 1000))} hours remaining`);
+    }
+
+    const rewards = [250, 300, 350, 400, 450, 500];
+    const amount = rewards[Math.floor(Math.random() * rewards.length)];
+    const xpGain = 15;
+
+    await storage.updateUser(user.id, {
+      coins: user.coins + amount,
+      xp: user.xp + xpGain,
+      lastVote: new Date(now)
+    });
+
+    await storage.createTransaction({
+      user: username,
+      type: 'vote',
+      amount,
+      targetUser: null,
+      description: `Community vote reward: ${amount} coins, ${xpGain} XP`
+    });
+
+    return {
+      success: true,
+      coins: amount,
+      xp: xpGain,
+      newBalance: user.coins + amount,
+      newXP: user.xp + xpGain,
+      message: `Thanks for voting! You earned ${amount} coins! 🗳️`
+    };
+  }
+
+  // Adventure system
+  static async adventure(username: string) {
+    const user = await storage.getUserByUsername(username);
+    if (!user) throw new Error("User not found");
+
+    const now = Date.now();
+    const adventureCooldown = 2 * 60 * 60 * 1000; // 2 hours
+
+    if (user.lastAdventure && (now - user.lastAdventure.getTime()) < adventureCooldown) {
+      const remaining = adventureCooldown - (now - user.lastAdventure.getTime());
+      throw new Error(`Adventure cooldown: ${Math.ceil(remaining / (60 * 60 * 1000))} hours remaining`);
+    }
+
+    const adventures = [
+      { name: 'Forest Quest', coins: 300, xp: 25, success: 0.8 },
+      { name: 'Mountain Expedition', coins: 500, xp: 40, success: 0.6 },
+      { name: 'Dungeon Raid', coins: 800, xp: 60, success: 0.4 },
+      { name: 'Dragon Hunt', coins: 1200, xp: 100, success: 0.25 }
+    ];
+
+    const adventure = adventures[Math.floor(Math.random() * adventures.length)];
+    const success = Math.random() < adventure.success;
+
+    if (success) {
+      await storage.updateUser(user.id, {
+        coins: user.coins + adventure.coins,
+        xp: user.xp + adventure.xp,
+        lastAdventure: new Date(now)
+      });
+
+      await storage.createTransaction({
+        user: username,
+        type: 'adventure',
+        amount: adventure.coins,
+        targetUser: null,
+        description: `${adventure.name} completed: ${adventure.coins} coins, ${adventure.xp} XP`
+      });
+
+      return {
+        success: true,
+        adventure: adventure.name,
+        coins: adventure.coins,
+        xp: adventure.xp,
+        newBalance: user.coins + adventure.coins,
+        newXP: user.xp + adventure.xp,
+        message: `${adventure.name} successful! Earned ${adventure.coins} coins! 🗺️`
+      };
+    } else {
+      await storage.updateUser(user.id, {
+        lastAdventure: new Date(now)
+      });
+
+      const failMessages = [
+        'Your adventure failed, but you gained experience from the journey!',
+        'The quest was too dangerous, you barely escaped!',
+        'Better luck next time, adventurer!'
+      ];
+
+      return {
+        success: false,
+        adventure: adventure.name,
+        coins: 0,
+        newBalance: user.coins,
+        message: failMessages[Math.floor(Math.random() * failMessages.length)]
+      };
+    }
+  }
+
+  // Achievement system
+  static async checkAchievements(username: string) {
+    const user = await storage.getUserByUsername(username);
+    if (!user) return [];
+
+    const newAchievements = [];
+    const currentAchievements = user.achievements || [];
+
+    const achievementDefinitions = [
+      { id: 'first_coin', name: 'First Coin', description: 'Earn your first coin', coins: 100, requirement: () => user.coins > 0 },
+      { id: 'level_5', name: 'Level Up!', description: 'Reach level 5', coins: 500, requirement: () => user.level >= 5 },
+      { id: 'level_10', name: 'Experienced', description: 'Reach level 10', coins: 1000, requirement: () => user.level >= 10 },
+      { id: 'rich_1k', name: 'Rich!', description: 'Have 1,000 coins', coins: 250, requirement: () => user.coins >= 1000 },
+      { id: 'rich_10k', name: 'Very Rich!', description: 'Have 10,000 coins', coins: 1000, requirement: () => user.coins >= 10000 },
+      { id: 'worker', name: 'Hard Worker', description: 'Work 10 times', coins: 300, requirement: () => user.gameStats?.workCount >= 10 }
+    ];
+
+    for (const achievement of achievementDefinitions) {
+      if (!currentAchievements.includes(achievement.id) && achievement.requirement()) {
+        newAchievements.push(achievement);
+        currentAchievements.push(achievement.id);
+
+        await storage.updateUser(user.id, {
+          coins: user.coins + achievement.coins,
+          achievements: currentAchievements
+        });
+
+        await storage.createTransaction({
+          user: username,
+          type: 'earn',
+          amount: achievement.coins,
+          targetUser: null,
+          description: `Achievement unlocked: ${achievement.name} - ${achievement.coins} coins`
+        });
+      }
+    }
+
+    return newAchievements;
   }
 }

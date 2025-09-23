@@ -10,12 +10,36 @@ async function throwIfResNotOk(res: Response) {
 export async function apiRequest(
   method: string,
   url: string,
-  data?: unknown | undefined,
+  options?: {
+    body?: unknown;
+    headers?: Record<string, string>;
+  } | unknown
 ): Promise<Response> {
+  // Handle legacy usage where third param was just body data
+  let body: unknown = undefined;
+  let headers: Record<string, string> = {};
+  
+  if (options) {
+    // Check if it's the new options format
+    if (typeof options === 'object' && options !== null && ('body' in options || 'headers' in options)) {
+      const opts = options as { body?: unknown; headers?: Record<string, string> };
+      body = opts.body;
+      headers = { ...headers, ...opts.headers };
+    } else {
+      // Legacy format - treat as body data
+      body = options;
+    }
+  }
+  
+  // Set Content-Type only if we have body data
+  if (body !== undefined) {
+    headers["Content-Type"] = "application/json";
+  }
+  
   const res = await fetch(url, {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
-    body: data ? JSON.stringify(data) : undefined,
+    headers,
+    body: body !== undefined ? JSON.stringify(body) : undefined,
     credentials: "include",
   });
 
