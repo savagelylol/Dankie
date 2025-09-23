@@ -51,6 +51,8 @@
     "drizzle-orm": "^0.39.1",
     "drizzle-zod": "^0.7.0",
     "embla-carousel-react": "^8.6.0",
+    "emoji-datasource-apple": "^15.1.2",
+    "emoji-js": "^3.8.1",
     "express": "^4.21.2",
     "express-rate-limit": "^8.1.0",
     "express-session": "^1.18.1",

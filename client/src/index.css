@@ -147,3 +147,23 @@
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
+
+/* Apple Emoji Styles */
+.emoji {
+  display: inline-block;
+  width: 1.2em;
+  height: 1.2em;
+  vertical-align: -0.1em;
+  margin: 0 0.05em 0 0.1em;
+  font-style: normal;
+  font-variant: normal;
+  text-rendering: auto;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Ensure emoji images are properly sized */
+.emoji img {
+  width: 1.2em;
+  height: 1.2em;
+  vertical-align: -0.1em;
+}

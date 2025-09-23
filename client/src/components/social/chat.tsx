@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { AppleEmojiText } from "@/components/ui/apple-emoji-text";
 import { Send, MessageCircle, Users } from "lucide-react";
 
 interface ChatMessage {
@@ -53,7 +54,9 @@ export default function Chat() {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <MessageCircle className="w-5 h-5 text-primary" />
-            <CardTitle className="font-impact text-xl text-primary">💬 GLOBAL CHAT</CardTitle>
+            <CardTitle className="font-impact text-xl text-primary">
+              <AppleEmojiText>💬 GLOBAL CHAT</AppleEmojiText>
+            </CardTitle>
             <Badge variant="secondary" className="text-xs">
               <Users className="w-3 h-3 mr-1" />
               {onlineUsers.size}
@@ -61,7 +64,7 @@ export default function Chat() {
           </div>
           <div className="flex items-center space-x-2">
             <Badge variant={connected ? "default" : "destructive"} className="text-xs">
-              {connected ? "🟢 Connected" : "🔴 Disconnected"}
+              <AppleEmojiText>{connected ? "🟢 Connected" : "🔴 Disconnected"}</AppleEmojiText>
             </Badge>
             <Button
               size="sm"
@@ -69,7 +72,7 @@ export default function Chat() {
               onClick={() => setIsExpanded(!isExpanded)}
               data-testid="button-toggle-chat"
             >
-              {isExpanded ? "📱" : "🔍"}
+              <AppleEmojiText>{isExpanded ? "📱" : "🔍"}</AppleEmojiText>
             </Button>
           </div>
         </div>
@@ -98,7 +101,7 @@ export default function Chat() {
           {connected && chatMessages.length === 0 && (
             <div className="text-center text-muted-foreground py-4">
               <MessageCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
-              <p>No messages yet. Start the conversation! 💬</p>
+              <p><AppleEmojiText>No messages yet. Start the conversation! 💬</AppleEmojiText></p>
             </div>
           )}
           
@@ -143,7 +146,7 @@ export default function Chat() {
                     ? 'bg-primary text-primary-foreground ml-auto'
                     : 'bg-background border'
                 }`}>
-                  {msg.message}
+                  <AppleEmojiText>{msg.message || ''}</AppleEmojiText>
                 </div>
               </div>
             </div>
@@ -156,7 +159,7 @@ export default function Chat() {
               className="text-center py-2"
             >
               <Badge variant="secondary" className="text-xs">
-                ℹ️ {msg.message}
+                <AppleEmojiText>{`ℹ️ ${msg.message || ''}`}</AppleEmojiText>
               </Badge>
             </div>
           ))}
@@ -192,7 +195,7 @@ export default function Chat() {
             <p><strong>Chat Rules:</strong></p>
             <p>• Be respectful to other players</p>
             <p>• No spam or excessive caps</p>
-            <p>• Keep it meme-related and fun! 🎉</p>
+            <p><AppleEmojiText>• Keep it meme-related and fun! 🎉</AppleEmojiText></p>
             <p>• Messages are limited to 200 characters</p>
           </div>
         )}
