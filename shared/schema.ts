@@ -23,6 +23,7 @@ export const users = pgTable("users", {
   lastActive: timestamp("last_active").default(sql`now()`).notNull(),
   banned: boolean("banned").default(false).notNull(),
   banReason: text("ban_reason").default("").notNull(),
+  tempBanUntil: timestamp("temp_ban_until"),
   lastFreemiumClaim: timestamp("last_freemium_claim"),
   lastDailyClaim: timestamp("last_daily_claim"),
   lastWork: timestamp("last_work"),
