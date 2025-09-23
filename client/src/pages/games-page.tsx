@@ -14,8 +14,6 @@ export default function GamesPage() {
   const { user } = useAuth();
   const [activeGame, setActiveGame] = useState<string | null>(null);
 
-  if (!user) return null;
-
   const games = [
     {
       id: "blackjack",

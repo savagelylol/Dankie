@@ -2,6 +2,9 @@ import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
 import DailyRewards from "@/components/freemium/daily-rewards";
@@ -12,7 +15,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Gift, Briefcase, Search, DollarSign } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Gift, Briefcase, Search, DollarSign, Skull, Target, Pickaxe, Smartphone, TrendingUp, Gamepad2, Ticket } from "lucide-react";
 
 export default function HomePage() {
   const { user } = useAuth();
@@ -98,7 +105,170 @@ export default function HomePage() {
     },
   });
 
-  if (!user) return null;
+  const crimeMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/economy/crime");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: data.success ? "Crime Success! 🦹" : "Crime Failed! 🚔",
+        description: data.message,
+        variant: data.success ? "default" : "destructive",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Crime Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const huntMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/economy/hunt");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Hunt Success! 🏹",
+        description: data.message,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Hunt Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const digMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/economy/dig");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Dig Success! ⛏️",
+        description: data.message,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Dig Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const postmemeMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/economy/postmeme");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Meme Posted! 📱",
+        description: data.message,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Post Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const streamMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/economy/stream");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Stream Complete! 📺",
+        description: data.message,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Stream Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const scratchMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/economy/scratch");
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: data.success ? "Scratch Win! 🎫✨" : "Scratch Loss! 🎫💸",
+        description: data.message,
+        variant: data.success ? "default" : "destructive",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Scratch Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Highlow form schema
+  const highlowSchema = z.object({
+    guess: z.enum(['higher', 'lower']),
+    betAmount: z.number().min(10, "Minimum bet is 10 coins").max(100000, "Maximum bet is 100,000 coins")
+  });
+
+  const highlowForm = useForm<z.infer<typeof highlowSchema>>({
+    resolver: zodResolver(highlowSchema),
+    defaultValues: {
+      guess: 'higher',
+      betAmount: 50
+    }
+  });
+
+  const highlowMutation = useMutation({
+    mutationFn: async (data: z.infer<typeof highlowSchema>) => {
+      const res = await apiRequest("POST", "/api/economy/highlow", data);
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: data.success ? "Highlow Win! 🎯" : "Highlow Loss! 📉",
+        description: data.message,
+        variant: data.success ? "default" : "destructive",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      highlowForm.reset();
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Highlow Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
 
   const levelProgress = (user.xp % (user.level * 1000)) / (user.level * 1000) * 100;
   const nextLevelXP = user.level * 1000;
@@ -128,7 +298,7 @@ export default function HomePage() {
             </div>
             
             {/* Quick Actions */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
               <DailyRewards />
               
               <Card className="bg-gradient-to-r from-secondary to-primary hover:scale-105 transition-transform glow-secondary">
@@ -178,6 +348,180 @@ export default function HomePage() {
                   </Button>
                 </CardContent>
               </Card>
+
+              <Card className="bg-gradient-to-r from-red-500 to-red-700 hover:scale-105 transition-transform glow-red">
+                <CardContent className="p-4 text-center">
+                  <Skull className="mx-auto mb-2 text-2xl text-white" />
+                  <h3 className="font-comic font-bold text-white">Crime</h3>
+                  <Button
+                    onClick={() => crimeMutation.mutate()}
+                    disabled={crimeMutation.isPending}
+                    className="mt-2 w-full bg-transparent hover:bg-white/20"
+                    size="sm"
+                    data-testid="button-crime"
+                  >
+                    {crimeMutation.isPending ? "Committing..." : "Crime Now!"}
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-r from-green-600 to-green-800 hover:scale-105 transition-transform glow-green">
+                <CardContent className="p-4 text-center">
+                  <Target className="mx-auto mb-2 text-2xl text-white" />
+                  <h3 className="font-comic font-bold text-white">Hunt</h3>
+                  <Button
+                    onClick={() => huntMutation.mutate()}
+                    disabled={huntMutation.isPending}
+                    className="mt-2 w-full bg-transparent hover:bg-white/20"
+                    size="sm"
+                    data-testid="button-hunt"
+                  >
+                    {huntMutation.isPending ? "Hunting..." : "Hunt Now!"}
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-r from-yellow-600 to-orange-600 hover:scale-105 transition-transform glow-yellow">
+                <CardContent className="p-4 text-center">
+                  <Pickaxe className="mx-auto mb-2 text-2xl text-white" />
+                  <h3 className="font-comic font-bold text-white">Dig</h3>
+                  <Button
+                    onClick={() => digMutation.mutate()}
+                    disabled={digMutation.isPending}
+                    className="mt-2 w-full bg-transparent hover:bg-white/20"
+                    size="sm"
+                    data-testid="button-dig"
+                  >
+                    {digMutation.isPending ? "Digging..." : "Dig Now!"}
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-r from-purple-600 to-pink-600 hover:scale-105 transition-transform glow-purple">
+                <CardContent className="p-4 text-center">
+                  <Smartphone className="mx-auto mb-2 text-2xl text-white" />
+                  <h3 className="font-comic font-bold text-white">Post Meme</h3>
+                  <Button
+                    onClick={() => postmemeMutation.mutate()}
+                    disabled={postmemeMutation.isPending}
+                    className="mt-2 w-full bg-transparent hover:bg-white/20"
+                    size="sm"
+                    data-testid="button-postmeme"
+                  >
+                    {postmemeMutation.isPending ? "Posting..." : "Post Meme!"}
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:scale-105 transition-transform glow-blue">
+                <CardContent className="p-4 text-center">
+                  <TrendingUp className="mx-auto mb-2 text-2xl text-white" />
+                  <h3 className="font-comic font-bold text-white">Stream</h3>
+                  <Button
+                    onClick={() => streamMutation.mutate()}
+                    disabled={streamMutation.isPending}
+                    className="mt-2 w-full bg-transparent hover:bg-white/20"
+                    size="sm"
+                    data-testid="button-stream"
+                  >
+                    {streamMutation.isPending ? "Streaming..." : "Stream Now!"}
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-r from-orange-500 to-red-500 hover:scale-105 transition-transform glow-orange">
+                <CardContent className="p-4 text-center">
+                  <Ticket className="mx-auto mb-2 text-2xl text-white" />
+                  <h3 className="font-comic font-bold text-white">Scratch</h3>
+                  <Button
+                    onClick={() => scratchMutation.mutate()}
+                    disabled={scratchMutation.isPending}
+                    className="mt-2 w-full bg-transparent hover:bg-white/20"
+                    size="sm"
+                    data-testid="button-scratch"
+                  >
+                    {scratchMutation.isPending ? "Scratching..." : "Scratch Now!"}
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Card className="bg-gradient-to-r from-cyan-500 to-teal-500 hover:scale-105 transition-transform glow-cyan cursor-pointer">
+                    <CardContent className="p-4 text-center">
+                      <TrendingUp className="mx-auto mb-2 text-2xl text-white" />
+                      <h3 className="font-comic font-bold text-white">High-Low</h3>
+                      <Button
+                        className="mt-2 w-full bg-transparent hover:bg-white/20"
+                        size="sm"
+                        data-testid="button-highlow"
+                      >
+                        Play Now!
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[425px]">
+                  <DialogHeader>
+                    <DialogTitle>High-Low Game 🎯</DialogTitle>
+                    <DialogDescription>
+                      Guess if the next number (1-100) will be higher or lower than the current number!
+                    </DialogDescription>
+                  </DialogHeader>
+                  <Form {...highlowForm}>
+                    <form onSubmit={highlowForm.handleSubmit((data) => highlowMutation.mutate(data))} className="space-y-4">
+                      <FormField
+                        control={highlowForm.control}
+                        name="betAmount"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Bet Amount (coins)</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                placeholder="50"
+                                {...field}
+                                onChange={(e) => field.onChange(Number(e.target.value))}
+                                data-testid="input-bet-amount"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={highlowForm.control}
+                        name="guess"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Your Guess</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                <SelectTrigger data-testid="select-guess">
+                                  <SelectValue placeholder="Choose your guess" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="higher">Higher ⬆️</SelectItem>
+                                <SelectItem value="lower">Lower ⬇️</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <Button
+                        type="submit"
+                        disabled={highlowMutation.isPending}
+                        className="w-full"
+                        data-testid="button-place-bet"
+                      >
+                        {highlowMutation.isPending ? "Playing..." : "Place Bet!"}
+                      </Button>
+                    </form>
+                  </Form>
+                </DialogContent>
+              </Dialog>
             </div>
           </CardContent>
         </Card>

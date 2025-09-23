@@ -799,4 +799,436 @@ export class EconomyService {
 
     return newAchievements;
   }
+
+  // Crime system
+  static async crime(username: string) {
+    const user = await storage.getUserByUsername(username);
+    if (!user) throw new Error("User not found");
+
+    const now = Date.now();
+    const crimeCooldown = 10 * 1000; // 10 seconds
+
+    if (user.lastCrime && (now - user.lastCrime.getTime()) < crimeCooldown) {
+      const remaining = crimeCooldown - (now - user.lastCrime.getTime());
+      throw new Error(`Crime cooldown: ${Math.ceil(remaining / 1000)} seconds remaining`);
+    }
+
+    const crimes = [
+      { name: 'Steal a meme', success: 0.8, coins: 200, fine: 100, xp: 10 },
+      { name: 'Rob a Discord server', success: 0.6, coins: 500, fine: 300, xp: 15 },
+      { name: 'Hack a computer', success: 0.4, coins: 1000, fine: 600, xp: 25 },
+      { name: 'Bank heist', success: 0.2, coins: 2000, fine: 1200, xp: 50 }
+    ];
+
+    const selectedCrime = crimes[Math.floor(Math.random() * crimes.length)];
+    const success = Math.random() < selectedCrime.success;
+
+    if (success) {
+      await storage.updateUser(user.id, {
+        coins: user.coins + selectedCrime.coins,
+        xp: user.xp + selectedCrime.xp,
+        lastCrime: new Date(now)
+      });
+
+      await storage.createTransaction({
+        user: username,
+        type: 'crime',
+        amount: selectedCrime.coins,
+        targetUser: null,
+        description: `Crime "${selectedCrime.name}" successful: ${selectedCrime.coins} coins, ${selectedCrime.xp} XP`
+      });
+
+      return {
+        success: true,
+        crime: selectedCrime.name,
+        coins: selectedCrime.coins,
+        xp: selectedCrime.xp,
+        newBalance: user.coins + selectedCrime.coins,
+        message: `Crime successful! ${selectedCrime.name} earned you ${selectedCrime.coins} coins! 🦹`
+      };
+    } else {
+      const totalLoss = Math.min(user.coins, selectedCrime.fine);
+      
+      await storage.updateUser(user.id, {
+        coins: user.coins - totalLoss,
+        lastCrime: new Date(now)
+      });
+
+      await storage.createTransaction({
+        user: username,
+        type: 'fine',
+        amount: totalLoss,
+        targetUser: null,
+        description: `Crime "${selectedCrime.name}" failed - fined ${totalLoss} coins`
+      });
+
+      return {
+        success: false,
+        crime: selectedCrime.name,
+        fine: totalLoss,
+        newBalance: user.coins - totalLoss,
+        message: `Crime failed! You were caught and fined ${totalLoss} coins! 🚔`
+      };
+    }
+  }
+
+  // Hunt system
+  static async hunt(username: string) {
+    const user = await storage.getUserByUsername(username);
+    if (!user) throw new Error("User not found");
+
+    const now = Date.now();
+    const huntCooldown = 10 * 1000; // 10 seconds
+
+    if (user.lastHunt && (now - user.lastHunt.getTime()) < huntCooldown) {
+      const remaining = huntCooldown - (now - user.lastHunt.getTime());
+      throw new Error(`Hunt cooldown: ${Math.ceil(remaining / 1000)} seconds remaining`);
+    }
+
+    const animals = [
+      { name: 'Rabbit', coins: 50, chance: 0.4, xp: 5 },
+      { name: 'Duck', coins: 100, chance: 0.25, xp: 8 },
+      { name: 'Boar', coins: 200, chance: 0.15, xp: 12 },
+      { name: 'Bear', coins: 400, chance: 0.1, xp: 20 },
+      { name: 'Dragon', coins: 1000, chance: 0.05, xp: 40 },
+      { name: 'Kraken', coins: 2000, chance: 0.05, xp: 60 }
+    ];
+
+    const rand = Math.random();
+    let cumulativeChance = 0;
+    let caughtAnimal = animals[0];
+    
+    for (const animal of [...animals].reverse()) {
+      cumulativeChance += animal.chance;
+      if (rand <= cumulativeChance) {
+        caughtAnimal = animal;
+        break;
+      }
+    }
+
+    await storage.updateUser(user.id, {
+      coins: user.coins + caughtAnimal.coins,
+      xp: user.xp + caughtAnimal.xp,
+      lastHunt: new Date(now)
+    });
+
+    await storage.createTransaction({
+      user: username,
+      type: 'earn',
+      amount: caughtAnimal.coins,
+      targetUser: null,
+      description: `Hunted a ${caughtAnimal.name}: ${caughtAnimal.coins} coins, ${caughtAnimal.xp} XP`
+    });
+
+    return {
+      success: true,
+      animal: caughtAnimal,
+      newBalance: user.coins + caughtAnimal.coins,
+      newXP: user.xp + caughtAnimal.xp,
+      message: `You hunted a ${caughtAnimal.name} and earned ${caughtAnimal.coins} coins! 🏹`
+    };
+  }
+
+  // Dig system
+  static async dig(username: string) {
+    const user = await storage.getUserByUsername(username);
+    if (!user) throw new Error("User not found");
+
+    const now = Date.now();
+    const digCooldown = 10 * 1000; // 10 seconds
+
+    if (user.lastDig && (now - user.lastDig.getTime()) < digCooldown) {
+      const remaining = digCooldown - (now - user.lastDig.getTime());
+      throw new Error(`Dig cooldown: ${Math.ceil(remaining / 1000)} seconds remaining`);
+    }
+
+    const treasures = [
+      { name: 'Bottle Cap', coins: 20, chance: 0.3, xp: 2 },
+      { name: 'Old Coin', coins: 75, chance: 0.25, xp: 5 },
+      { name: 'Treasure Chest', coins: 200, chance: 0.2, xp: 10 },
+      { name: 'Ancient Artifact', coins: 500, chance: 0.15, xp: 20 },
+      { name: 'Legendary Gem', coins: 1500, chance: 0.1, xp: 40 }
+    ];
+
+    const rand = Math.random();
+    let cumulativeChance = 0;
+    let foundTreasure = treasures[0];
+    
+    for (const treasure of [...treasures].reverse()) {
+      cumulativeChance += treasure.chance;
+      if (rand <= cumulativeChance) {
+        foundTreasure = treasure;
+        break;
+      }
+    }
+
+    await storage.updateUser(user.id, {
+      coins: user.coins + foundTreasure.coins,
+      xp: user.xp + foundTreasure.xp,
+      lastDig: new Date(now)
+    });
+
+    await storage.createTransaction({
+      user: username,
+      type: 'earn',
+      amount: foundTreasure.coins,
+      targetUser: null,
+      description: `Dug up a ${foundTreasure.name}: ${foundTreasure.coins} coins, ${foundTreasure.xp} XP`
+    });
+
+    return {
+      success: true,
+      treasure: foundTreasure,
+      newBalance: user.coins + foundTreasure.coins,
+      newXP: user.xp + foundTreasure.xp,
+      message: `You dug up a ${foundTreasure.name} and earned ${foundTreasure.coins} coins! ⛏️`
+    };
+  }
+
+  // Post meme system
+  static async postmeme(username: string) {
+    const user = await storage.getUserByUsername(username);
+    if (!user) throw new Error("User not found");
+
+    const now = Date.now();
+    const postmemeCooldown = 10 * 1000; // 10 seconds
+
+    if (user.lastPostmeme && (now - user.lastPostmeme.getTime()) < postmemeCooldown) {
+      const remaining = postmemeCooldown - (now - user.lastPostmeme.getTime());
+      throw new Error(`Postmeme cooldown: ${Math.ceil(remaining / 1000)} seconds remaining`);
+    }
+
+    const memeTypes = [
+      { name: 'Normie Meme', coins: 50, likes: 100, xp: 3 },
+      { name: 'Dank Meme', coins: 150, likes: 500, xp: 8 },
+      { name: 'Fresh Meme', coins: 300, likes: 1000, xp: 15 },
+      { name: 'Spicy Meme', coins: 500, likes: 2000, xp: 25 },
+      { name: 'God-Tier Meme', coins: 1000, likes: 5000, xp: 50 }
+    ];
+
+    const meme = memeTypes[Math.floor(Math.random() * memeTypes.length)];
+    const actualLikes = Math.floor(meme.likes * (0.5 + Math.random() * 0.5)); // 50-100% of expected likes
+    const bonusCoins = Math.floor(actualLikes / 10); // Bonus based on likes
+
+    const totalCoins = meme.coins + bonusCoins;
+
+    await storage.updateUser(user.id, {
+      coins: user.coins + totalCoins,
+      xp: user.xp + meme.xp,
+      lastPostmeme: new Date(now)
+    });
+
+    await storage.createTransaction({
+      user: username,
+      type: 'postmeme',
+      amount: totalCoins,
+      targetUser: null,
+      description: `Posted ${meme.name}: ${totalCoins} coins (${actualLikes} likes), ${meme.xp} XP`
+    });
+
+    return {
+      success: true,
+      meme: meme.name,
+      coins: totalCoins,
+      likes: actualLikes,
+      xp: meme.xp,
+      newBalance: user.coins + totalCoins,
+      newXP: user.xp + meme.xp,
+      message: `Your ${meme.name} got ${actualLikes} likes and earned ${totalCoins} coins! 📱`
+    };
+  }
+
+  // High-Low game
+  static async highlow(username: string, guess: 'higher' | 'lower', betAmount: number) {
+    const user = await storage.getUserByUsername(username);
+    if (!user) throw new Error("User not found");
+
+    if (betAmount <= 0 || betAmount > user.coins) {
+      throw new Error("Invalid bet amount");
+    }
+
+    if (betAmount < 10) {
+      throw new Error("Minimum bet is 10 coins");
+    }
+
+    const currentNumber = Math.floor(Math.random() * 100) + 1;
+    const nextNumber = Math.floor(Math.random() * 100) + 1;
+    
+    let correct = false;
+    if (guess === 'higher' && nextNumber > currentNumber) correct = true;
+    if (guess === 'lower' && nextNumber < currentNumber) correct = true;
+
+    if (correct) {
+      const winnings = Math.floor(betAmount * 1.8); // 1.8x multiplier
+      
+      await storage.updateUser(user.id, {
+        coins: user.coins + winnings,
+        xp: user.xp + 5
+      });
+
+      await storage.createTransaction({
+        user: username,
+        type: 'earn',
+        amount: winnings,
+        targetUser: null,
+        description: `High-Low win: guessed ${guess} (${currentNumber} → ${nextNumber}), won ${winnings} coins`
+      });
+
+      return {
+        success: true,
+        currentNumber,
+        nextNumber,
+        guess,
+        won: winnings,
+        newBalance: user.coins + winnings,
+        message: `Correct! ${currentNumber} → ${nextNumber}. You won ${winnings} coins! 🎯`
+      };
+    } else {
+      await storage.updateUser(user.id, {
+        coins: user.coins - betAmount
+      });
+
+      await storage.createTransaction({
+        user: username,
+        type: 'spend',
+        amount: betAmount,
+        targetUser: null,
+        description: `High-Low loss: guessed ${guess} (${currentNumber} → ${nextNumber}), lost ${betAmount} coins`
+      });
+
+      return {
+        success: false,
+        currentNumber,
+        nextNumber,
+        guess,
+        lost: betAmount,
+        newBalance: user.coins - betAmount,
+        message: `Wrong! ${currentNumber} → ${nextNumber}. You lost ${betAmount} coins! 📉`
+      };
+    }
+  }
+
+  // Stream system
+  static async stream(username: string) {
+    const user = await storage.getUserByUsername(username);
+    if (!user) throw new Error("User not found");
+
+    const now = Date.now();
+    const streamCooldown = 10 * 1000; // 10 seconds
+
+    if (user.lastStream && (now - user.lastStream.getTime()) < streamCooldown) {
+      const remaining = streamCooldown - (now - user.lastStream.getTime());
+      throw new Error(`Stream cooldown: ${Math.ceil(remaining / 1000)} seconds remaining`);
+    }
+
+    const games = [
+      { name: 'Among Us', viewers: 500, coins: 200, trending: false },
+      { name: 'Fortnite', viewers: 1000, coins: 300, trending: true },
+      { name: 'Minecraft', viewers: 800, coins: 250, trending: false },
+      { name: 'Fall Guys', viewers: 600, coins: 220, trending: false },
+      { name: 'Valorant', viewers: 1200, coins: 350, trending: true },
+      { name: 'Apex Legends', viewers: 900, coins: 280, trending: false }
+    ];
+
+    const game = games[Math.floor(Math.random() * games.length)];
+    const multiplier = game.trending ? 3 : 1; // 3x for trending games
+    const totalCoins = game.coins * multiplier;
+    const actualViewers = Math.floor(game.viewers * (0.7 + Math.random() * 0.6)); // Random viewer variance
+
+    await storage.updateUser(user.id, {
+      coins: user.coins + totalCoins,
+      xp: user.xp + 12,
+      lastStream: new Date(now)
+    });
+
+    await storage.createTransaction({
+      user: username,
+      type: 'stream',
+      amount: totalCoins,
+      targetUser: null,
+      description: `Streamed ${game.name}: ${totalCoins} coins (${actualViewers} viewers)${game.trending ? ' [TRENDING]' : ''}`
+    });
+
+    return {
+      success: true,
+      game: game.name,
+      viewers: actualViewers,
+      trending: game.trending,
+      coins: totalCoins,
+      xp: 12,
+      newBalance: user.coins + totalCoins,
+      newXP: user.xp + 12,
+      message: `You streamed ${game.name} to ${actualViewers} viewers and earned ${totalCoins} coins!${game.trending ? ' 🔥 TRENDING GAME!' : ''} 📺`
+    };
+  }
+
+  // Scratch-off tickets
+  static async scratch(username: string) {
+    const user = await storage.getUserByUsername(username);
+    if (!user) throw new Error("User not found");
+
+    const now = Date.now();
+    const scratchCooldown = 10 * 1000; // 10 seconds
+
+    if (user.lastScratch && (now - user.lastScratch.getTime()) < scratchCooldown) {
+      const remaining = scratchCooldown - (now - user.lastScratch.getTime());
+      throw new Error(`Scratch cooldown: ${Math.ceil(remaining / 1000)} seconds remaining`);
+    }
+
+    const tickets = [
+      { name: 'Basic Ticket', cost: 100, prizes: [0, 50, 100, 150, 200, 500], odds: [0.4, 0.25, 0.15, 0.1, 0.08, 0.02] },
+      { name: 'Premium Ticket', cost: 250, prizes: [0, 150, 300, 500, 750, 1000, 2000], odds: [0.35, 0.25, 0.18, 0.12, 0.07, 0.025, 0.005] },
+      { name: 'Mega Ticket', cost: 500, prizes: [0, 300, 600, 1000, 1500, 2500, 5000], odds: [0.3, 0.25, 0.2, 0.15, 0.08, 0.018, 0.002] }
+    ];
+
+    const ticket = tickets[Math.floor(Math.random() * tickets.length)];
+    
+    if (user.coins < ticket.cost) {
+      throw new Error(`You need ${ticket.cost} coins to buy a ${ticket.name}`);
+    }
+
+    // Select prize based on odds
+    const random = Math.random();
+    let cumulativeOdds = 0;
+    let prizeIndex = 0;
+    
+    for (let i = 0; i < ticket.odds.length; i++) {
+      cumulativeOdds += ticket.odds[i];
+      if (random <= cumulativeOdds) {
+        prizeIndex = i;
+        break;
+      }
+    }
+
+    const prize = ticket.prizes[prizeIndex];
+    const netGain = prize - ticket.cost;
+
+    await storage.updateUser(user.id, {
+      coins: user.coins + netGain,
+      xp: user.xp + 8,
+      lastScratch: new Date(now)
+    });
+
+    await storage.createTransaction({
+      user: username,
+      type: 'scratch',
+      amount: netGain,
+      targetUser: null,
+      description: `Scratched ${ticket.name}: cost ${ticket.cost}, won ${prize} coins (net: ${netGain > 0 ? '+' : ''}${netGain})`
+    });
+
+    return {
+      success: prize > 0,
+      ticket: ticket.name,
+      cost: ticket.cost,
+      prize,
+      netGain,
+      xp: 8,
+      newBalance: user.coins + netGain,
+      newXP: user.xp + 8,
+      message: prize > 0 
+        ? `You bought a ${ticket.name} for ${ticket.cost} coins and won ${prize} coins! Net: ${netGain > 0 ? '+' : ''}${netGain} coins! 🎫✨`
+        : `You bought a ${ticket.name} for ${ticket.cost} coins but didn't win anything. Better luck next time! 🎫💸`
+    };
+  }
 }

@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
+import { z } from "zod";
 import { storage } from "./storage";
 import { setupAuth, requireAuth, requireAdmin } from "./auth";
 import { GameService } from "./services/gameService";
@@ -136,6 +137,76 @@ export function registerRoutes(app: Express): Server {
   app.post('/api/economy/adventure', requireAuth, async (req, res) => {
     try {
       const result = await EconomyService.adventure(req.user!.username);
+      res.json(result);
+    } catch (error) {
+      res.status(400).json({ error: (error as Error).message });
+    }
+  });
+
+  // New Dank Memer inspired earning methods
+  app.post('/api/economy/crime', requireAuth, async (req, res) => {
+    try {
+      const result = await EconomyService.crime(req.user!.username);
+      res.json(result);
+    } catch (error) {
+      res.status(400).json({ error: (error as Error).message });
+    }
+  });
+
+  app.post('/api/economy/hunt', requireAuth, async (req, res) => {
+    try {
+      const result = await EconomyService.hunt(req.user!.username);
+      res.json(result);
+    } catch (error) {
+      res.status(400).json({ error: (error as Error).message });
+    }
+  });
+
+  app.post('/api/economy/dig', requireAuth, async (req, res) => {
+    try {
+      const result = await EconomyService.dig(req.user!.username);
+      res.json(result);
+    } catch (error) {
+      res.status(400).json({ error: (error as Error).message });
+    }
+  });
+
+  app.post('/api/economy/postmeme', requireAuth, async (req, res) => {
+    try {
+      const result = await EconomyService.postmeme(req.user!.username);
+      res.json(result);
+    } catch (error) {
+      res.status(400).json({ error: (error as Error).message });
+    }
+  });
+
+  app.post('/api/economy/highlow', requireAuth, async (req, res) => {
+    try {
+      const highlowSchema = z.object({
+        guess: z.enum(['higher', 'lower']),
+        betAmount: z.number().min(10).max(100000)
+      });
+      
+      const { guess, betAmount } = highlowSchema.parse(req.body);
+      const result = await EconomyService.highlow(req.user!.username, guess, betAmount);
+      res.json(result);
+    } catch (error) {
+      res.status(400).json({ error: (error as Error).message });
+    }
+  });
+
+  app.post('/api/economy/stream', requireAuth, async (req, res) => {
+    try {
+      const result = await EconomyService.stream(req.user!.username);
+      res.json(result);
+    } catch (error) {
+      res.status(400).json({ error: (error as Error).message });
+    }
+  });
+
+  app.post('/api/economy/scratch', requireAuth, async (req, res) => {
+    try {
+      const result = await EconomyService.scratch(req.user!.username);
       res.json(result);
     } catch (error) {
       res.status(400).json({ error: (error as Error).message });
