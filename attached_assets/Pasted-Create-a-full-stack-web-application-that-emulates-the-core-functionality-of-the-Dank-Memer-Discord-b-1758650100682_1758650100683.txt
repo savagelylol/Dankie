@@ -1,0 +1,122 @@
+Create a full-stack web application that emulates the core functionality of the Dank Memer Discord bot, but fully adapted for a browser-based experience. The website should be named "Web Memer" and provide users with an engaging, meme-themed virtual economy system featuring games, shops, social interactions, progression mechanics, and daily rewards. Leverage modern web technologies: Node.js with Express.js for the backend server. Use Replit's built-in Database (a simple key-value store accessed via `const db = require("@replit/database");` or `from replit import db` if Python, but stick to Node.js) for persistent data storage of user profiles, inventories, economy balances, and logs—do not use any external databases like MongoDB. Serialize all complex data as JSON objects and use key prefixes for organization (e.g., 'user:username' for user data, 'item:id' for items, 'transaction:id' for logs). Integrate Socket.io for live features like chat, notifications, and multiplayer elements. Ensure the entire app is optimized for deployment on Replit, including a .replit configuration file for runtime commands (e.g., run = "npm run start"), use Replit Secrets for sensitive environment variables (e.g., JWT_SECRET, ADMIN_KEY), and handle Replit's resource limits (e.g., by implementing efficient queries, in-memory caching for frequent reads, and avoiding heavy operations).
+
+### Overall Architecture:
+- **Backend Setup**: Use Express.js to define RESTful API endpoints for all interactions. Structure folders as: /server (app.js, routes/, controllers/, models/, middleware/, utils/). Implement CORS for frontend communication. Use dotenv for env vars, but load sensitive ones from Replit Secrets. For real-time, Socket.io server integrated with Express, handling events like 'joinChat', 'sendMessage', 'tradeRequest', 'notification'. For database operations, create helper functions in /models to handle get/set/del with JSON serialization (e.g., getUser(username) { return JSON.parse(db[`user:${username}`] || '{}'); }, setUser(username, data) { db[`user:${username}`] = JSON.stringify(data); }). Use unique IDs generated via uuid or simple counters stored in db['nextId:user'] etc.
+- **Frontend Setup**: React app in /client folder, with components/, pages/, hooks/, utils/. Use React Router for navigation (routes: '/', '/profile', '/shop', '/games', '/inventory', '/leaderboard', '/chat', '/admin'). Style with Tailwind CSS for a responsive, dark-themed UI (base: black background, neon accents in green/purple, meme fonts like Impact for headers, Comic Sans for buttons). Include animations via Framer Motion (e.g., coin flip spins, confetti explosions on wins).
+- **Database Integration**: Use Replit Database exclusively. No schemas like in MongoDB; instead, define data structures in code with validation on set/get:
+  - **Users**: Key format 'user:username'. Value: JSON object { username (string, unique), email (string, unique), passwordHash (string), coins (number, default 0, min 0), bank (number, default 0, min 0), bankCapacity (number, default 10000, increases with level), level (number, default 1, min 1), xp (number, default 0, min 0), inventory (array of {itemId: string, quantity: number, equipped: boolean}), friends (array of usernames), bio (string, max 200 chars), avatarUrl (string, default placeholder), onlineStatus (boolean, default false), createdAt (timestamp, default Date.now()), lastActive (timestamp), banned (boolean, default false), banReason (string), lastFreemiumClaim (timestamp, default null), lastDailyClaim (timestamp, default null), lastWork (timestamp, default null), lastBeg (timestamp, default null), lastSearch (timestamp, default null), lastRob (timestamp, default null) }.
+  - **Items**: Key format 'item:id' (id as string, e.g., uuid). Value: JSON { id (string), name (string, unique), description (string), price (number, min 1), type (string: 'tool', 'collectible', 'powerup', 'consumable', 'lootbox'), rarity (string: 'common', 'uncommon', 'rare', 'epic', 'legendary'), effects (object: {passive: {winRateBoost: number}, active: {useCooldown: number}}), stock (number, default Infinity) }. Store all item ids in a list at db['items:list'] = JSON.stringify(array of ids).
+  - **Transactions**: Key format 'transaction:id'. Value: JSON { id (string), user (username), type (string: 'earn', 'spend', 'transfer', 'rob', 'fine', 'freemium'), amount (number), targetUser (username, optional), description (string), timestamp (number, default Date.now()) }. Store user-specific transaction ids in 'user:username:transactions' = JSON.stringify(array of ids). For queries, fetch and filter in code.
+  - **Events**: Key format 'event:id'. Value: JSON { id (string), name (string), startDate (timestamp), endDate (timestamp), multipliers (object: {xp: number, coins: number}) }. List at db['events:list'].
+  - **Notifications**: Key format 'notification:id'. Value: JSON { id (string), user (username), message (string), type (string: 'trade', 'friend', 'event', 'system'), read (boolean, default false), timestamp (number) }. User-specific list at 'user:username:notifications'.
+  - For leaderboards, maintain a sorted list in db['leaderboard:coins'] = JSON.stringify(array of {username, coins} sorted descending), updated on coin changes (use cron-like with setInterval for periodic sorts if needed).
+  - Validation: In setters, enforce mins/maxes, uniqueness (check existing keys), etc. For "refs", use usernames/ids as strings. Handle concurrency with optimistic locking or simple retries if conflicts arise.
+- **Authentication and Security**: JWT for session management (store in localStorage on frontend, verify with middleware). Bcrypt for hashing passwords (salt rounds 12). Registration: Check uniqueness by scanning user keys or maintain db['users:list'] = JSON.stringify(array of usernames). Login: Rate-limited (express-rate-limit: 5 attempts/5min/IP). Logout: Clear token. Password reset: Generate token, mock email (console.log for dev, integrate Nodemailer with free SMTP if possible). Middleware: Auth for protected routes, adminAuth requiring a special ADMIN_KEY from Replit Secrets. Sanitize inputs with express-validator or manual checks. Prevent XSS by escaping outputs. HTTPS via Replit's proxy if available. Implement CAPTCHA (reCAPTCHA free tier) for high-risk actions like rob.
+- **Deployment and Optimization**: .replit file: run = "npm run start" (concurrently run backend and frontend with 'concurrently'). Procfile: web: node server/app.js. Seed script: On first run (check if db['initialized'] exists), populate sample items (store as 'item:1', etc.), test users, and set db['initialized'] = true. Handle Replit limits: Use in-memory cache (e.g., Map) for hot data like active users, paginate all lists (e.g., fetch 20 transactions at a time), avoid full scans by maintaining index lists (e.g., db['users:list']). Mobile-responsive: Tailwind's sm/md/lg breakpoints, touch-friendly buttons.
+
+### Key Features (Expanded with More Details):
+1. **User Dashboard/Homepage**:
+   - Personalized greeting: "Welcome back, [username]! Ready to meme your way to riches? 💰"
+   - Stats display: Coins (with comma formatting), bank balance/capacity, level (with progress bar: xp / (level * 1000)), streak counter (for daily logins).
+   - Quick commands: 
+     - Daily: Claim once/24h, random 200-1000 coins + item chance (5% rare). Button disables post-claim with countdown timer (use lastDailyClaim to enforce).
+     - Work: Every 30min, select job (e.g., "Meme Farmer" 100-300 coins, "Doge Miner" 50-500). Anti-spam: Server-side cooldown via lastWork.
+     - Beg: Every 5min, random 0-150 coins or funny failure message ("A wild Elon appears and ignores you!"). Enforce via lastBeg.
+     - Search: Random locations (e.g., "under the couch") for 10-100 coins, 10% item find, cooldown 15min via lastSearch.
+   - Activity feed: Last 10 transactions (fetch from user's transaction list, get details).
+   - Leaderboard teaser: Top 10 by coins (from cached leaderboard).
+   - Freemium integration: Show claim button here with timer.
+
+2. **Economy System**:
+   - Starting balance: 500 coins welcome bonus on registration.
+   - Bank: Deposit (all or amount), withdraw (with 1% fee). Passive interest: 0.5% per day, calculated on login (compare lastActive, apply formula).
+   - Rob: Search user by username, bet up to 20% of own coins. Success: 20-50% based on level diff + items. Failure: Lose bet + fine. Cooldown: 2h via lastRob, notify victim.
+   - Steal: Similar but item-focused.
+   - Pay/Transfer: To username, min 10 coins, optional message. Fee: 5% for >1000.
+   - Economy commands: Balance check, net worth (sum coins + bank + estimate item values), history (paginated from list).
+   - Anti-abuse: Daily earn cap (track via dailyEarn key per user), flag rapid transfers (log for admin).
+
+3. **Games Section**:
+   - Interface: Grid of game cards with descriptions, entry fees, potential wins.
+   - Blackjack: Server-dealt cards (use crypto.randomBytes for random), hit/stand/double/split. Bets 10-10000, house edge 1%.
+   - Slots: 5 reels, meme symbols. Payouts: 2x-50x. Spin animation.
+   - Coinflip: Bet on heads/tails, 1.95x payout.
+   - Plinko: Drop ball, multipliers 0.5x-10x (simple random paths).
+   - Crash: Multiplier rises, cash out before crash.
+   - Trivia: 100+ hardcoded questions in db['trivia:questions'] = JSON array.
+   - High/Low: Card guessing.
+   - Multiplayer: Rock-Paper-Scissors (Socket.io rooms).
+   - Stats: Stored in user object (win/loss counts). Apply item boosts server-side.
+
+4. **Shop**:
+   - Categories with filters: Sort in code after fetching all items (or paginate ids from list).
+   - Item examples: Fishing Rod (passive +50 coins/hour, implement via timer on login), Rare Pepe, Luck Potion, Work Box (lootbox with sub-loot).
+   - Pricing: Base + fluctuation (store currentPrice in item, update via setInterval).
+   - Buy: Check balance, deduct, add to user inventory. Sell: 70-90% back.
+   - Black Market: Unlock at level 10, separate item list.
+
+5. **Freemium Rewards**:
+   - Daily claimable, refreshes every 24 hours (midnight UTC), random gifts inspired by Dank Memer's Freemium.
+   - Eligibility: All users, one per day (check lastFreemiumClaim < Date.now() - 24*60*60*1000).
+   - Claim: Button on dashboard, generate reward, update user (coins/inventory), log transaction, set lastFreemiumClaim.
+   - Loot Table (weighted random function in code):
+     - 40%: 100-500 coins.
+     - 25%: Common item.
+     - 15%: Uncommon.
+     - 10%: Rare.
+     - 5%: Epic/legendary.
+     - 5%: Loot box (on open, roll 2-5 sub-items).
+   - Mechanics: Mock "Watch Ad" (timer/placeholder). IP tracking: Store lastIP in user, flag multiples (notify admin). Preview rewards. Confetti on claim.
+   - Integration: Countdown timer. Admin adjustable via db['freemium:loot'] = JSON of probabilities.
+
+6. **Inventory Management**:
+   - Grid view: Fetch user inventory, get item details.
+   - Use/Equip: Update user, apply effects (timed via timestamps).
+   - Discard/Sell: Remove/update.
+   - Trading: Propose via notification, accept with Socket.io.
+   - Loot boxes: Open button rolls sub-loot (define in item.effects.subLoot array).
+
+7. **Social/Community Features**:
+   - Profile: Edit bio/avatar (upload via Multer, store path in db or base64 for small).
+   - Friends: Add to user.friends, online via Socket.io.
+   - Chat: Global/DMs (store recent messages in db['chat:global'] list, prune old).
+   - Notifications: Add to user list, fetch unread.
+   - Events: Check active on actions, apply multipliers.
+
+8. **Leveling and Progression**:
+   - XP: +5/action, +20/win, +50/daily, +from Freemium.
+   - Level up: On xp >= level*1500, increment, bonus coins, notify.
+   - Achievements: Store in user.achievements array, badges on profile.
+
+9. **Admin Panel**:
+   - Access: /admin, with ADMIN_KEY from Secrets.
+   - User Mgmt: List (from users:list), edit (get/set user key), ban, impersonate, delete.
+   - Economy: Set multipliers (db['global:multipliers']), reset, inject.
+   - Item Mgmt: Add/edit/delete (manage list).
+   - Event Mgmt: Create/announce.
+   - Freemium: Edit loot table, monitor claims (scan users for lastClaim), force grant.
+   - Maintenance: Broadcast (db['broadcast']), clear cache, stats (calculate from data).
+   - Custom commands: Input parses e.g., "giveAll 100" to loop users and add coins.
+   - Moderation/Analytics: As before.
+
+### UI/UX Guidelines:
+- Theme: Dark toggle, emojis (MUST BE APPLE EMOJIS), sounds (Howler.js).
+- Accessibility: ARIA, contrast.
+- Errors: Toasts.
+- Onboarding: Modal with Freemium info.
+
+### Testing and Edge Cases:
+- Tests: Jest/RTL.
+- Edges: Zero balances, concurrent updates (use locks if needed), claim at reset.
+- Seed: 50 items (incl. lootboxes), 10 users.
+- Logging: Console/Winston.
+
+### Additional Requirements:
+- Free tools.
+- ESLint/Prettier.
+- README: Setup, secrets, API docs.
+- Performance: Cache, debounce, index lists.
+- Scalability: For 500 users.
+
+Build iteratively: Backend auth/DB first, economy/games, frontend, social, Freemium, admin. Debug, check exploits in logic/cooldowns.
+
