@@ -185,12 +185,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async initializeData(): Promise<void> {
-    // Check if we already have items in the database
+    // Get existing items to check what's already in the database
     const existingItems = await this.getAllItems();
-    if (existingItems.length > 0) return;
+    const existingItemNames = new Set(existingItems.map(item => item.name));
 
     // Create sample items
     const sampleItems = [
+      // Tools (Equipment that provides passive benefits)
       {
         name: "Fishing Rod",
         description: "Passive +50 coins/hour",
@@ -205,6 +206,47 @@ export class DatabaseStorage implements IStorage {
         currentPrice: 5000
       },
       {
+        name: "Hunting Rifle",
+        description: "Passive +75 coins/hour, +5% gambling luck",
+        price: 8000,
+        type: 'tool' as const,
+        rarity: 'uncommon' as const,
+        effects: {
+          passive: { winRateBoost: 5, coinsPerHour: 75 },
+          active: { useCooldown: 0, duration: 0, effect: "" }
+        },
+        stock: 2147483647,
+        currentPrice: 8000
+      },
+      {
+        name: "Laptop",
+        description: "Work from home! Passive +100 coins/hour",
+        price: 15000,
+        type: 'tool' as const,
+        rarity: 'rare' as const,
+        effects: {
+          passive: { winRateBoost: 0, coinsPerHour: 100 },
+          active: { useCooldown: 0, duration: 0, effect: "" }
+        },
+        stock: 2147483647,
+        currentPrice: 15000
+      },
+      {
+        name: "Golden Pickaxe",
+        description: "Epic mining tool! Passive +200 coins/hour, +10% luck",
+        price: 50000,
+        type: 'tool' as const,
+        rarity: 'epic' as const,
+        effects: {
+          passive: { winRateBoost: 10, coinsPerHour: 200 },
+          active: { useCooldown: 0, duration: 0, effect: "" }
+        },
+        stock: 2147483647,
+        currentPrice: 50000
+      },
+      
+      // Collectibles (Rare items for prestige and trading)
+      {
         name: "Rare Pepe",
         description: "Legendary collectible meme",
         price: 25000,
@@ -218,10 +260,51 @@ export class DatabaseStorage implements IStorage {
         currentPrice: 25000
       },
       {
+        name: "Dank Crown",
+        description: "Show off your wealth! Ultimate status symbol",
+        price: 1000000,
+        type: 'collectible' as const,
+        rarity: 'legendary' as const,
+        effects: {
+          passive: { winRateBoost: 0, coinsPerHour: 0 },
+          active: { useCooldown: 0, duration: 0, effect: "" }
+        },
+        stock: 1,
+        currentPrice: 1000000
+      },
+      {
+        name: "Meme Trophy",
+        description: "Award for exceptional meme quality",
+        price: 75000,
+        type: 'collectible' as const,
+        rarity: 'epic' as const,
+        effects: {
+          passive: { winRateBoost: 0, coinsPerHour: 0 },
+          active: { useCooldown: 0, duration: 0, effect: "" }
+        },
+        stock: 25,
+        currentPrice: 75000
+      },
+      {
+        name: "Shiny Rock",
+        description: "It's shiny... and it's a rock",
+        price: 5000,
+        type: 'collectible' as const,
+        rarity: 'common' as const,
+        effects: {
+          passive: { winRateBoost: 0, coinsPerHour: 0 },
+          active: { useCooldown: 0, duration: 0, effect: "" }
+        },
+        stock: 500,
+        currentPrice: 5000
+      },
+      
+      // Consumables (One-time use items with temporary effects)
+      {
         name: "Luck Potion",
         description: "+15% win rate for 1 hour",
         price: 2500,
-        type: 'powerup' as const,
+        type: 'consumable' as const,
         rarity: 'uncommon' as const,
         effects: {
           passive: { winRateBoost: 0, coinsPerHour: 0 },
@@ -230,6 +313,47 @@ export class DatabaseStorage implements IStorage {
         stock: 50,
         currentPrice: 2500
       },
+      {
+        name: "Energy Drink",
+        description: "Skip all cooldowns for 30 minutes",
+        price: 5000,
+        type: 'consumable' as const,
+        rarity: 'rare' as const,
+        effects: {
+          passive: { winRateBoost: 0, coinsPerHour: 0 },
+          active: { useCooldown: 1800000, duration: 1800000, effect: "no_cooldowns" }
+        },
+        stock: 25,
+        currentPrice: 5000
+      },
+      {
+        name: "Coin Multiplier",
+        description: "2x coin earnings for 2 hours",
+        price: 10000,
+        type: 'consumable' as const,
+        rarity: 'epic' as const,
+        effects: {
+          passive: { winRateBoost: 0, coinsPerHour: 0 },
+          active: { useCooldown: 7200000, duration: 7200000, effect: "coin_multiplier" }
+        },
+        stock: 10,
+        currentPrice: 10000
+      },
+      {
+        name: "XP Booster",
+        description: "Double XP gains for 1 hour",
+        price: 3000,
+        type: 'consumable' as const,
+        rarity: 'uncommon' as const,
+        effects: {
+          passive: { winRateBoost: 0, coinsPerHour: 0 },
+          active: { useCooldown: 3600000, duration: 3600000, effect: "xp_boost" }
+        },
+        stock: 30,
+        currentPrice: 3000
+      },
+      
+      // Loot Boxes (Mystery containers with random rewards)
       {
         name: "Dank Box",
         description: "Contains 2-5 random items!",
@@ -242,16 +366,72 @@ export class DatabaseStorage implements IStorage {
         },
         stock: 20,
         currentPrice: 10000
+      },
+      {
+        name: "Starter Pack",
+        description: "Perfect for new players! Contains basic items",
+        price: 2500,
+        type: 'lootbox' as const,
+        rarity: 'common' as const,
+        effects: {
+          passive: { winRateBoost: 0, coinsPerHour: 0 },
+          active: { useCooldown: 0, duration: 0, effect: "starter_lootbox" }
+        },
+        stock: 100,
+        currentPrice: 2500
+      },
+      {
+        name: "Legendary Chest",
+        description: "Ultra rare items await! 1% chance legendary",
+        price: 50000,
+        type: 'lootbox' as const,
+        rarity: 'legendary' as const,
+        effects: {
+          passive: { winRateBoost: 0, coinsPerHour: 0 },
+          active: { useCooldown: 0, duration: 0, effect: "legendary_lootbox" }
+        },
+        stock: 5,
+        currentPrice: 50000
+      },
+      {
+        name: "Mystery Bundle",
+        description: "Could contain anything... even a boat!",
+        price: 7500,
+        type: 'lootbox' as const,
+        rarity: 'rare' as const,
+        effects: {
+          passive: { winRateBoost: 0, coinsPerHour: 0 },
+          active: { useCooldown: 0, duration: 0, effect: "mystery_lootbox" }
+        },
+        stock: 40,
+        currentPrice: 7500
       }
     ];
 
+    // Upsert items - add new ones and update existing ones to ensure consistency
+    let addedCount = 0;
+    let updatedCount = 0;
+    
     for (const itemData of sampleItems) {
-      await this.createItem(itemData);
+      if (!existingItemNames.has(itemData.name)) {
+        // Item doesn't exist, create it
+        await this.createItem(itemData);
+        addedCount++;
+      } else {
+        // Item exists, update it to ensure consistency across environments
+        const existingItem = existingItems.find(item => item.name === itemData.name);
+        if (existingItem) {
+          await this.updateItem(existingItem.id, itemData);
+          updatedCount++;
+        }
+      }
     }
 
-    // Note: Trivia questions and freemium loot table can be stored as JSON
-    // For now, we'll skip these initialization steps as they're not critical
-    console.log("Database initialized with sample items");
+    if (addedCount > 0 || updatedCount > 0) {
+      console.log(`Database initialized: ${addedCount} new items added, ${updatedCount} items updated`);
+    } else {
+      console.log("All sample items are up to date in database");
+    }
   }
 }
 
