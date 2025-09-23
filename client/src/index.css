@@ -23,7 +23,7 @@
   --input: hsl(215, 20%, 18%);
   --ring: hsl(217, 91%, 60%);
   --radius: 0.75rem;
-  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-sans: 'Inter', system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   --font-impact: 'Impact', 'Arial Black', sans-serif;
   --font-comic: 'Comic Sans MS', cursive;
 }
@@ -61,6 +61,7 @@
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
+    font-variant-emoji: emoji;
   }
 }
 
