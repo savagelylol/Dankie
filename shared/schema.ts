@@ -1,117 +1,122 @@
 import { z } from "zod";
+import { pgTable, varchar, integer, boolean, timestamp, jsonb, text, serial } from "drizzle-orm/pg-core";
+import { relations, sql } from "drizzle-orm";
+import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 
-// User schema for Replit Database
-export const insertUserSchema = z.object({
-  username: z.string().min(3).max(20).regex(/^[a-zA-Z0-9_]+$/),
-  email: z.string().email(),
-  password: z.string().min(8),
+
+// Drizzle table definitions
+export const users = pgTable("users", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  username: varchar("username", { length: 20 }).notNull().unique(),
+  email: varchar("email").notNull().unique(),
+  passwordHash: text("password_hash").notNull(),
+  coins: integer("coins").default(500).notNull(),
+  bank: integer("bank").default(0).notNull(),
+  bankCapacity: integer("bank_capacity").default(10000).notNull(),
+  level: integer("level").default(1).notNull(),
+  xp: integer("xp").default(0).notNull(),
+  inventory: jsonb("inventory").default([]).notNull(),
+  friends: jsonb("friends").default([]).notNull(),
+  bio: varchar("bio", { length: 200 }).default("").notNull(),
+  avatarUrl: text("avatar_url").default("").notNull(),
+  onlineStatus: boolean("online_status").default(false).notNull(),
+  createdAt: timestamp("created_at").default(sql`now()`).notNull(),
+  lastActive: timestamp("last_active").default(sql`now()`).notNull(),
+  banned: boolean("banned").default(false).notNull(),
+  banReason: text("ban_reason").default("").notNull(),
+  lastFreemiumClaim: timestamp("last_freemium_claim"),
+  lastDailyClaim: timestamp("last_daily_claim"),
+  lastWork: timestamp("last_work"),
+  lastBeg: timestamp("last_beg"),
+  lastSearch: timestamp("last_search"),
+  lastRob: timestamp("last_rob"),
+  dailyEarn: integer("daily_earn").default(0).notNull(),
+  lastIP: varchar("last_ip").default("").notNull(),
+  achievements: jsonb("achievements").default([]).notNull(),
+  gameStats: jsonb("game_stats").default(sql`'{}'`).notNull(),
 });
 
-export const userSchema = insertUserSchema.extend({
-  id: z.string(),
-  passwordHash: z.string(),
-  coins: z.number().default(500),
-  bank: z.number().default(0),
-  bankCapacity: z.number().default(10000),
-  level: z.number().default(1),
-  xp: z.number().default(0),
-  inventory: z.array(z.object({
-    itemId: z.string(),
-    quantity: z.number(),
-    equipped: z.boolean().default(false)
-  })).default([]),
-  friends: z.array(z.string()).default([]),
-  bio: z.string().max(200).default(""),
-  avatarUrl: z.string().default(""),
-  onlineStatus: z.boolean().default(false),
-  createdAt: z.number().default(() => Date.now()),
-  lastActive: z.number().default(() => Date.now()),
-  banned: z.boolean().default(false),
-  banReason: z.string().default(""),
-  lastFreemiumClaim: z.number().nullable().default(null),
-  lastDailyClaim: z.number().nullable().default(null),
-  lastWork: z.number().nullable().default(null),
-  lastBeg: z.number().nullable().default(null),
-  lastSearch: z.number().nullable().default(null),
-  lastRob: z.number().nullable().default(null),
-  dailyEarn: z.number().default(0),
-  lastIP: z.string().default(""),
-  achievements: z.array(z.string()).default([]),
-  gameStats: z.object({
-    blackjackWins: z.number().default(0),
-    blackjackLosses: z.number().default(0),
-    slotsWins: z.number().default(0),
-    slotsLosses: z.number().default(0),
-    coinflipWins: z.number().default(0),
-    coinflipLosses: z.number().default(0),
-    triviaWins: z.number().default(0),
-    triviaLosses: z.number().default(0)
-  }).default({})
+export const items = pgTable("items", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull(),
+  description: text("description").notNull(),
+  price: integer("price").notNull(),
+  type: varchar("type", { enum: ['tool', 'collectible', 'powerup', 'consumable', 'lootbox'] }).notNull(),
+  rarity: varchar("rarity", { enum: ['common', 'uncommon', 'rare', 'epic', 'legendary'] }).notNull(),
+  effects: jsonb("effects").default(sql`'{}'`).notNull(),
+  stock: integer("stock").default(sql`2147483647`).notNull(), // Max int for "infinity"
+  currentPrice: integer("current_price"),
 });
 
-export const itemSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  description: z.string(),
-  price: z.number().min(1),
-  type: z.enum(['tool', 'collectible', 'powerup', 'consumable', 'lootbox']),
-  rarity: z.enum(['common', 'uncommon', 'rare', 'epic', 'legendary']),
-  effects: z.object({
-    passive: z.object({
-      winRateBoost: z.number().default(0),
-      coinsPerHour: z.number().default(0)
-    }).default({}),
-    active: z.object({
-      useCooldown: z.number().default(0),
-      duration: z.number().default(0),
-      effect: z.string().default("")
-    }).default({})
-  }).default({}),
-  stock: z.number().default(Infinity),
-  currentPrice: z.number().optional()
+export const transactions = pgTable("transactions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  user: varchar("user").notNull(),
+  type: varchar("type", { enum: ['earn', 'spend', 'transfer', 'rob', 'fine', 'freemium'] }).notNull(),
+  amount: integer("amount").notNull(),
+  targetUser: varchar("target_user"),
+  description: text("description").notNull(),
+  timestamp: timestamp("timestamp").default(sql`now()`).notNull(),
 });
 
-export const transactionSchema = z.object({
-  id: z.string(),
-  user: z.string(),
-  type: z.enum(['earn', 'spend', 'transfer', 'rob', 'fine', 'freemium']),
-  amount: z.number(),
-  targetUser: z.string().optional(),
-  description: z.string(),
-  timestamp: z.number().default(() => Date.now())
+export const notifications = pgTable("notifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  user: varchar("user").notNull(),
+  message: text("message").notNull(),
+  type: varchar("type", { enum: ['trade', 'friend', 'event', 'system', 'rob'] }).notNull(),
+  read: boolean("read").default(false).notNull(),
+  timestamp: timestamp("timestamp").default(sql`now()`).notNull(),
 });
 
-export const notificationSchema = z.object({
-  id: z.string(),
-  user: z.string(),
-  message: z.string(),
-  type: z.enum(['trade', 'friend', 'event', 'system', 'rob']),
-  read: z.boolean().default(false),
-  timestamp: z.number().default(() => Date.now())
+export const events = pgTable("events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull(),
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date").notNull(),
+  multipliers: jsonb("multipliers").default(sql`'{}'`).notNull(),
 });
 
-export const eventSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  startDate: z.number(),
-  endDate: z.number(),
-  multipliers: z.object({
-    xp: z.number().default(1),
-    coins: z.number().default(1)
-  }).default({})
+export const chatMessages = pgTable("chat_messages", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  username: varchar("username").notNull(),
+  message: text("message").notNull(),
+  timestamp: timestamp("timestamp").default(sql`now()`).notNull(),
 });
 
-export const chatMessageSchema = z.object({
-  id: z.string(),
-  username: z.string(),
-  message: z.string(),
-  timestamp: z.number().default(() => Date.now())
-});
+// Relations
+export const usersRelations = relations(users, ({ many }) => ({
+  transactions: many(transactions),
+  notifications: many(notifications),
+}));
 
+export const transactionsRelations = relations(transactions, ({ one }) => ({
+  user: one(users, {
+    fields: [transactions.user],
+    references: [users.username],
+  }),
+}));
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, {
+    fields: [notifications.user],
+    references: [users.username],
+  }),
+}));
+
+// Create insert and select schemas from tables
+export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true, lastActive: true });
+export const selectUserSchema = createSelectSchema(users);
+export const insertItemSchema = createInsertSchema(items).omit({ id: true });
+export const selectItemSchema = createSelectSchema(items);
+export const insertTransactionSchema = createInsertSchema(transactions).omit({ id: true, timestamp: true });
+export const selectTransactionSchema = createSelectSchema(transactions);
+export const insertNotificationSchema = createInsertSchema(notifications).omit({ id: true, timestamp: true });
+export const selectNotificationSchema = createSelectSchema(notifications);
+
+// Type exports
 export type InsertUser = z.infer<typeof insertUserSchema>;
-export type User = z.infer<typeof userSchema>;
-export type Item = z.infer<typeof itemSchema>;
-export type Transaction = z.infer<typeof transactionSchema>;
-export type Notification = z.infer<typeof notificationSchema>;
-export type Event = z.infer<typeof eventSchema>;
-export type ChatMessage = z.infer<typeof chatMessageSchema>;
+export type User = typeof users.$inferSelect;
+export type Item = typeof items.$inferSelect;
+export type Transaction = typeof transactions.$inferSelect;
+export type Notification = typeof notifications.$inferSelect;
+export type Event = typeof events.$inferSelect;
+export type ChatMessage = typeof chatMessages.$inferSelect;

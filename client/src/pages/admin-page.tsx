@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -17,27 +17,41 @@ export default function AdminPage() {
   const [adminKey, setAdminKey] = useState("");
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [banReason, setBanReason] = useState("");
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const { toast } = useToast();
 
+  // Initialize with stored admin key on component mount
+  const storedKey = localStorage.getItem('adminKey');
+  
+  // Initialize authentication state if there's a stored key
+  useEffect(() => {
+    if (storedKey && !isAuthenticated) {
+      setIsAuthenticated(true);
+    }
+  }, [storedKey, isAuthenticated]);
+  
   // Check if user has admin access by trying to fetch users
   const { data: users = [], isLoading, error } = useQuery({
     queryKey: ["/api/admin/users"],
     queryFn: async () => {
-      const res = await apiRequest("GET", "/api/admin/users", undefined, {
-        'admin-key': adminKey || localStorage.getItem('adminKey') || ''
+      const keyToUse = storedKey || adminKey;
+      const res = await apiRequest("GET", "/api/admin/users", {
+        headers: { 'admin-key': keyToUse }
       });
       return res.json();
     },
-    enabled: !!adminKey || !!localStorage.getItem('adminKey'),
+    enabled: isAuthenticated || (!!storedKey && !isAuthenticating),
     retry: false,
   });
 
   const executeCommandMutation = useMutation({
     mutationFn: async (cmd: string) => {
-      const res = await apiRequest("POST", "/api/admin/command", 
-        { command: cmd, adminKey }, 
-        { 'admin-key': adminKey }
-      );
+      const keyToUse = storedKey || adminKey;
+      const res = await apiRequest("POST", "/api/admin/command", {
+        body: { command: cmd, adminKey: keyToUse },
+        headers: { 'admin-key': keyToUse }
+      });
       return res.json();
     },
     onSuccess: (data) => {
@@ -59,10 +73,11 @@ export default function AdminPage() {
 
   const banUserMutation = useMutation({
     mutationFn: async ({ userId, reason }: { userId: string; reason: string }) => {
-      const res = await apiRequest("POST", `/api/admin/users/${userId}/ban`, 
-        { reason }, 
-        { 'admin-key': adminKey }
-      );
+      const keyToUse = storedKey || adminKey;
+      const res = await apiRequest("POST", `/api/admin/users/${userId}/ban`, {
+        body: { reason },
+        headers: { 'admin-key': keyToUse }
+      });
       return res.json();
     },
     onSuccess: () => {
@@ -83,11 +98,39 @@ export default function AdminPage() {
     },
   });
 
-  const handleAdminKeySubmit = (e: React.FormEvent) => {
+  const handleAdminKeySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (adminKey) {
-      localStorage.setItem('adminKey', adminKey);
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      setIsAuthenticating(true);
+      try {
+        // Test the admin key by trying to fetch users
+        const res = await apiRequest("GET", "/api/admin/users", {
+          headers: { 'admin-key': adminKey }
+        });
+        
+        if (res.ok) {
+          localStorage.setItem('adminKey', adminKey);
+          setIsAuthenticated(true);
+          toast({
+            title: "Access Granted! 🔓",
+            description: "Welcome to the admin panel",
+          });
+        } else {
+          toast({
+            title: "Access Denied ❌",
+            description: "Invalid admin key",
+            variant: "destructive",
+          });
+        }
+      } catch (error) {
+        toast({
+          title: "Access Denied ❌",
+          description: "Invalid admin key",
+          variant: "destructive",
+        });
+      } finally {
+        setIsAuthenticating(false);
+      }
     }
   };
 
@@ -98,8 +141,8 @@ export default function AdminPage() {
     }
   };
 
-  // Show admin key input if not authenticated
-  if (!adminKey && !localStorage.getItem('adminKey')) {
+  // Show admin key input if not authenticated and no stored key
+  if (!isAuthenticated && !storedKey) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
@@ -131,8 +174,9 @@ export default function AdminPage() {
                   type="submit" 
                   className="w-full font-comic bg-destructive hover:bg-destructive/80"
                   data-testid="button-submit-admin-key"
+                  disabled={isAuthenticating}
                 >
-                  🔓 ACCESS ADMIN PANEL
+                  {isAuthenticating ? "⏳ Checking Access..." : "🔓 ACCESS ADMIN PANEL"}
                 </Button>
               </form>
             </CardContent>
