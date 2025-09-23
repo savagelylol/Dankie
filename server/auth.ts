@@ -203,10 +203,37 @@ export function setupAuth(app: Express) {
 
 // Middleware to check if user is authenticated
 export function requireAuth(req: any, res: any, next: any) {
-  if (req.isAuthenticated()) {
-    return next();
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ error: "Authentication required" });
   }
-  res.status(401).json({ error: "Authentication required" });
+
+  const user = req.user;
+  
+  // Check for permanent ban
+  if (user.banned) {
+    return res.status(403).json({ 
+      error: "Account banned", 
+      reason: user.banReason || "No reason provided" 
+    });
+  }
+
+  // Check for temporary ban
+  if (user.tempBanUntil && new Date(user.tempBanUntil) > new Date()) {
+    const banUntil = new Date(user.tempBanUntil);
+    return res.status(403).json({ 
+      error: "Account temporarily banned", 
+      reason: user.banReason || "Temporary ban",
+      banUntil: banUntil.toISOString()
+    });
+  }
+
+  // If tempBanUntil has expired, clear it
+  if (user.tempBanUntil && new Date(user.tempBanUntil) <= new Date()) {
+    // Clear expired temporary ban
+    storage.updateUser(user.id, { tempBanUntil: null, banReason: "" });
+  }
+
+  return next();
 }
 
 // Middleware to check if user is admin

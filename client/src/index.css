@@ -23,7 +23,7 @@
   --input: hsl(215, 20%, 18%);
   --ring: hsl(217, 91%, 60%);
   --radius: 0.75rem;
-  --font-sans: 'Inter', system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-sans: 'Inter', system-ui, sans-serif;
   --font-impact: 'Impact', 'Arial Black', sans-serif;
   --font-comic: 'Comic Sans MS', cursive;
 }
@@ -61,7 +61,6 @@
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
-    font-variant-emoji: emoji;
   }
 }
 
@@ -148,22 +147,3 @@
   100% { transform: rotate(360deg); }
 }
 
-/* Apple Emoji Styles */
-.emoji {
-  display: inline-block;
-  width: 1.2em;
-  height: 1.2em;
-  vertical-align: -0.1em;
-  margin: 0 0.05em 0 0.1em;
-  font-style: normal;
-  font-variant: normal;
-  text-rendering: auto;
-  -webkit-font-smoothing: antialiased;
-}
-
-/* Ensure emoji images are properly sized */
-.emoji img {
-  width: 1.2em;
-  height: 1.2em;
-  vertical-align: -0.1em;
-}

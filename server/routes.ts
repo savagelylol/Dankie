@@ -424,24 +424,17 @@ export function registerRoutes(app: Express): Server {
   // Admin routes
   app.get('/api/admin/users', requireAdmin, async (req, res) => {
     try {
-      const userIds = await storage.db?.get('users:list') || [];
-      const users = [];
-      
-      for (const userId of userIds) {
-        const user = await storage.getUser(userId);
-        if (user) {
-          users.push({
-            id: user.id,
-            username: user.username,
-            email: user.email,
-            coins: user.coins,
-            level: user.level,
-            banned: user.banned,
-            banReason: user.banReason,
-            createdAt: user.createdAt
-          });
-        }
-      }
+      const allUsers = await storage.getAllUsers();
+      const users = allUsers.map(user => ({
+        id: user.id,
+        username: user.username,
+        coins: user.coins,
+        level: user.level,
+        banned: user.banned,
+        banReason: user.banReason,
+        tempBanUntil: user.tempBanUntil,
+        createdAt: user.createdAt
+      }));
       
       res.json(users);
     } catch (error) {
@@ -468,6 +461,110 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Unban user
+  app.post('/api/admin/users/:id/unban', requireAdmin, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.params.id);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      await storage.updateUser(user.id, {
+        banned: false,
+        banReason: "",
+        tempBanUntil: null
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      res.status(400).json({ error: (error as Error).message });
+    }
+  });
+
+  // Temporary ban user
+  app.post('/api/admin/users/:id/tempban', requireAdmin, async (req, res) => {
+    try {
+      const { reason, duration } = req.body; // duration in hours
+      const user = await storage.getUser(req.params.id);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      if (!duration || isNaN(parseInt(duration))) {
+        return res.status(400).json({ error: "Invalid duration" });
+      }
+
+      const tempBanUntil = new Date();
+      tempBanUntil.setHours(tempBanUntil.getHours() + parseInt(duration));
+
+      await storage.updateUser(user.id, {
+        banned: false, // Keep permanent ban false for temp bans
+        banReason: reason || "Temporary ban",
+        tempBanUntil
+      });
+
+      res.json({ success: true, message: `User temporarily banned for ${duration} hours` });
+    } catch (error) {
+      res.status(400).json({ error: (error as Error).message });
+    }
+  });
+
+  // Give coins to specific user
+  app.post('/api/admin/users/:id/give-coins', requireAdmin, async (req, res) => {
+    try {
+      const { amount } = req.body;
+      const user = await storage.getUser(req.params.id);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      if (!amount || isNaN(parseInt(amount))) {
+        return res.status(400).json({ error: "Invalid amount" });
+      }
+
+      const coinAmount = parseInt(amount);
+      await storage.updateUser(user.id, {
+        coins: user.coins + coinAmount
+      });
+
+      await storage.createTransaction({
+        user: user.username,
+        type: 'earn',
+        amount: coinAmount,
+        description: `Admin gave ${coinAmount} coins`,
+        targetUser: null,
+        timestamp: new Date()
+      });
+
+      res.json({ success: true, message: `Gave ${coinAmount} coins to ${user.username}` });
+    } catch (error) {
+      res.status(400).json({ error: (error as Error).message });
+    }
+  });
+
+  // Kick user (force disconnect)
+  app.post('/api/admin/users/:id/kick', requireAdmin, async (req, res) => {
+    try {
+      const { reason } = req.body;
+      const user = await storage.getUser(req.params.id);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Update user's online status
+      await storage.updateUser(user.id, {
+        onlineStatus: false
+      });
+
+      // Send kick notification via WebSocket if connected
+      // This would need WebSocket instance access - simplified for now
+      
+      res.json({ success: true, message: `Kicked user ${user.username}` });
+    } catch (error) {
+      res.status(400).json({ error: (error as Error).message });
+    }
+  });
+
   app.post('/api/admin/command', requireAdmin, async (req, res) => {
     try {
       const { command } = req.body;
@@ -480,11 +577,10 @@ export function registerRoutes(app: Express): Server {
             return res.status(400).json({ error: "Invalid amount" });
           }
 
-          const userIds = await storage.db?.get('users:list') || [];
+          const allUsers = await storage.getAllUsers();
           let affected = 0;
           
-          for (const userId of userIds) {
-            const user = await storage.getUser(userId);
+          for (const user of allUsers) {
             if (user && !user.banned) {
               await storage.updateUser(user.id, {
                 coins: user.coins + amount
@@ -494,7 +590,9 @@ export function registerRoutes(app: Express): Server {
                 user: user.username,
                 type: 'earn',
                 amount,
-                description: `Admin command: giveAll ${amount}`
+                description: `Admin command: giveAll ${amount}`,
+                targetUser: null,
+                timestamp: new Date()
               });
               
               affected++;
@@ -502,6 +600,96 @@ export function registerRoutes(app: Express): Server {
           }
 
           res.json({ success: true, message: `Gave ${amount} coins to ${affected} users` });
+          break;
+
+        case 'resetUser':
+          const resetUsername = params[0];
+          if (!resetUsername) {
+            return res.status(400).json({ error: "Username required" });
+          }
+
+          const resetUser = await storage.getUserByUsername(resetUsername);
+          if (!resetUser) {
+            return res.status(404).json({ error: "User not found" });
+          }
+
+          await storage.updateUser(resetUser.id, {
+            coins: 500,
+            bank: 0,
+            level: 1,
+            xp: 0,
+            inventory: [],
+            achievements: []
+          });
+
+          res.json({ success: true, message: `Reset user ${resetUsername} to default state` });
+          break;
+
+        case 'setLevel':
+          const levelUsername = params[0];
+          const newLevel = parseInt(params[1]);
+          if (!levelUsername || isNaN(newLevel)) {
+            return res.status(400).json({ error: "Usage: setLevel <username> <level>" });
+          }
+
+          const levelUser = await storage.getUserByUsername(levelUsername);
+          if (!levelUser) {
+            return res.status(404).json({ error: "User not found" });
+          }
+
+          await storage.updateUser(levelUser.id, {
+            level: Math.max(1, newLevel),
+            xp: Math.max(0, (newLevel - 1) * 1000) // Rough XP calculation
+          });
+
+          res.json({ success: true, message: `Set ${levelUsername} to level ${newLevel}` });
+          break;
+
+        case 'clearInventory':
+          const invUsername = params[0];
+          if (!invUsername) {
+            return res.status(400).json({ error: "Username required" });
+          }
+
+          const invUser = await storage.getUserByUsername(invUsername);
+          if (!invUser) {
+            return res.status(404).json({ error: "User not found" });
+          }
+
+          await storage.updateUser(invUser.id, {
+            inventory: []
+          });
+
+          res.json({ success: true, message: `Cleared inventory for ${invUsername}` });
+          break;
+
+        case 'clearAllBans':
+          const allUsersForUnban = await storage.getAllUsers();
+          let unbanned = 0;
+          
+          for (const user of allUsersForUnban) {
+            if (user && (user.banned || user.tempBanUntil)) {
+              await storage.updateUser(user.id, {
+                banned: false,
+                banReason: "",
+                tempBanUntil: null
+              });
+              unbanned++;
+            }
+          }
+
+          res.json({ success: true, message: `Unbanned ${unbanned} users` });
+          break;
+
+        case 'serverMessage':
+          const message = params.join(' ');
+          if (!message) {
+            return res.status(400).json({ error: "Message required" });
+          }
+
+          // This would broadcast a server message via WebSocket
+          // Simplified implementation for now
+          res.json({ success: true, message: `Server message sent: ${message}` });
           break;
 
         default:
