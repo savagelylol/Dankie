@@ -149,7 +149,7 @@ export class EconomyService {
 
     // Check cooldown
     const now = Date.now();
-    const robCooldown = 2 * 60 * 60 * 1000; // 2 hours
+    const robCooldown = 10 * 1000; // 10 seconds
     
     if (user.lastRob && (now - user.lastRob.getTime()) < robCooldown) {
       const remaining = robCooldown - (now - user.lastRob.getTime());
@@ -267,7 +267,7 @@ export class EconomyService {
     if (!user) throw new Error("User not found");
 
     const now = Date.now();
-    const dailyCooldown = 24 * 60 * 60 * 1000; // 24 hours
+    const dailyCooldown = 10 * 1000; // 10 seconds
 
     if (user.lastDailyClaim && (now - user.lastDailyClaim.getTime()) < dailyCooldown) {
       const remaining = dailyCooldown - (now - user.lastDailyClaim.getTime());
@@ -332,7 +332,7 @@ export class EconomyService {
     if (!user) throw new Error("User not found");
 
     const now = Date.now();
-    const workCooldown = 30 * 60 * 1000; // 30 minutes
+    const workCooldown = 10 * 1000; // 10 seconds
 
     if (user.lastWork && (now - user.lastWork.getTime()) < workCooldown) {
       const remaining = workCooldown - (now - user.lastWork.getTime());
@@ -382,7 +382,7 @@ export class EconomyService {
     if (!user) throw new Error("User not found");
 
     const now = Date.now();
-    const begCooldown = 5 * 60 * 1000; // 5 minutes
+    const begCooldown = 10 * 1000; // 10 seconds
 
     if (user.lastBeg && (now - user.lastBeg.getTime()) < begCooldown) {
       const remaining = begCooldown - (now - user.lastBeg.getTime());
@@ -440,7 +440,7 @@ export class EconomyService {
     if (!user) throw new Error("User not found");
 
     const now = Date.now();
-    const searchCooldown = 15 * 60 * 1000; // 15 minutes
+    const searchCooldown = 10 * 1000; // 10 seconds
 
     if (user.lastSearch && (now - user.lastSearch.getTime()) < searchCooldown) {
       const remaining = searchCooldown - (now - user.lastSearch.getTime());
@@ -544,7 +544,7 @@ export class EconomyService {
     if (!user) throw new Error("User not found");
 
     const now = Date.now();
-    const fishCooldown = 20 * 60 * 1000; // 20 minutes
+    const fishCooldown = 10 * 1000; // 10 seconds
 
     if (user.lastFish && (now - user.lastFish.getTime()) < fishCooldown) {
       const remaining = fishCooldown - (now - user.lastFish.getTime());
@@ -601,7 +601,7 @@ export class EconomyService {
     if (!user) throw new Error("User not found");
 
     const now = Date.now();
-    const mineCooldown = 45 * 60 * 1000; // 45 minutes
+    const mineCooldown = 10 * 1000; // 10 seconds
 
     if (user.lastMine && (now - user.lastMine.getTime()) < mineCooldown) {
       const remaining = mineCooldown - (now - user.lastMine.getTime());
@@ -657,7 +657,7 @@ export class EconomyService {
     if (!user) throw new Error("User not found");
 
     const now = Date.now();
-    const voteCooldown = 12 * 60 * 60 * 1000; // 12 hours
+    const voteCooldown = 10 * 1000; // 10 seconds
 
     if (user.lastVote && (now - user.lastVote.getTime()) < voteCooldown) {
       const remaining = voteCooldown - (now - user.lastVote.getTime());
@@ -698,7 +698,7 @@ export class EconomyService {
     if (!user) throw new Error("User not found");
 
     const now = Date.now();
-    const adventureCooldown = 2 * 60 * 60 * 1000; // 2 hours
+    const adventureCooldown = 10 * 1000; // 10 seconds
 
     if (user.lastAdventure && (now - user.lastAdventure.getTime()) < adventureCooldown) {
       const remaining = adventureCooldown - (now - user.lastAdventure.getTime());
