@@ -66,7 +66,7 @@ export function setupAuth(app: Express) {
         // Update last active and online status
         await storage.updateUser(user.id, { 
           onlineStatus: true,
-          lastActive: Date.now()
+          lastActive: new Date()
         });
         
         return done(null, user);
@@ -88,10 +88,10 @@ export function setupAuth(app: Express) {
 
   app.post("/api/register", authLimiter, async (req, res, next) => {
     try {
-      const { username, email, password } = req.body;
+      const { username, password } = req.body;
       
       // Validate input
-      if (!username || !email || !password) {
+      if (!username || !password) {
         return res.status(400).json({ error: "Missing required fields" });
       }
 
@@ -107,22 +107,15 @@ export function setupAuth(app: Express) {
         return res.status(400).json({ error: "Password must be at least 8 characters" });
       }
 
-      // Check if username or email already exists
+      // Check if username already exists
       const existingUser = await storage.getUserByUsername(username);
-      const existingEmail = await storage.getUserByEmail(email);
       
       if (existingUser) {
         return res.status(400).json({ error: "Username already exists" });
       }
 
-      if (existingEmail) {
-        return res.status(400).json({ error: "Email already exists" });
-      }
-
       const user = await storage.createUser({
         username,
-        email,
-        password,
         passwordHash: await hashPassword(password),
       });
 
@@ -131,15 +124,16 @@ export function setupAuth(app: Express) {
         user: user.username,
         type: 'earn',
         amount: 500,
-        description: 'Welcome bonus! 🎉'
+        targetUser: null,
+        description: 'Welcome bonus! 🎉',
+        timestamp: new Date()
       });
 
       req.login(user, (err) => {
         if (err) return next(err);
         res.status(201).json({ 
           id: user.id, 
-          username: user.username, 
-          email: user.email,
+          username: user.username,
           coins: user.coins,
           level: user.level,
           xp: user.xp 
@@ -162,7 +156,6 @@ export function setupAuth(app: Express) {
         res.json({
           id: user.id,
           username: user.username,
-          email: user.email,
           coins: user.coins,
           level: user.level,
           xp: user.xp
@@ -191,7 +184,6 @@ export function setupAuth(app: Express) {
     res.json({
       id: req.user.id,
       username: req.user.username,
-      email: req.user.email,
       coins: req.user.coins,
       bank: req.user.bank,
       bankCapacity: req.user.bankCapacity,

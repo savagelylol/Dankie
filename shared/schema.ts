@@ -8,7 +8,6 @@ import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   username: varchar("username", { length: 20 }).notNull().unique(),
-  email: varchar("email").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
   coins: integer("coins").default(500).notNull(),
   bank: integer("bank").default(0).notNull(),

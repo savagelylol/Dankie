@@ -8,7 +8,6 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertUserSchema } from "@shared/schema";
 import { z } from "zod";
 
 const loginSchema = z.object({
@@ -16,8 +15,13 @@ const loginSchema = z.object({
   password: z.string().min(1, "Password required"),
 });
 
+const registerSchema = z.object({
+  username: z.string().min(3, "Username must be at least 3 characters").max(20, "Username must be 20 characters or less"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+});
+
 type LoginData = z.infer<typeof loginSchema>;
-type RegisterData = z.infer<typeof insertUserSchema>;
+type RegisterData = z.infer<typeof registerSchema>;
 
 export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
@@ -32,10 +36,9 @@ export default function AuthPage() {
   });
 
   const registerForm = useForm<RegisterData>({
-    resolver: zodResolver(insertUserSchema),
+    resolver: zodResolver(registerSchema),
     defaultValues: {
       username: "",
-      email: "",
       password: "",
     },
   });
@@ -140,22 +143,6 @@ export default function AuthPage() {
                       {registerForm.formState.errors.username && (
                         <p className="text-destructive text-sm mt-1">
                           {registerForm.formState.errors.username.message}
-                        </p>
-                      )}
-                    </div>
-                    
-                    <div>
-                      <Label htmlFor="register-email">Email</Label>
-                      <Input
-                        id="register-email"
-                        data-testid="input-register-email"
-                        type="email"
-                        {...registerForm.register("email")}
-                        placeholder="Enter your email"
-                      />
-                      {registerForm.formState.errors.email && (
-                        <p className="text-destructive text-sm mt-1">
-                          {registerForm.formState.errors.email.message}
                         </p>
                       )}
                     </div>

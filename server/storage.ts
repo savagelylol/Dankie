@@ -9,7 +9,6 @@ const MemoryStore = createMemoryStore(session);
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
-  getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser & { passwordHash: string }): Promise<User>;
   updateUser(id: string, updates: Partial<User>): Promise<User>;
   deleteUser(id: string): Promise<void>;
@@ -35,11 +34,11 @@ export interface IStorage {
   
   // System
   initializeData(): Promise<void>;
-  sessionStore: session.SessionStore;
+  sessionStore: session.Store;
 }
 
 export class DatabaseStorage implements IStorage {
-  public sessionStore: session.SessionStore;
+  public sessionStore: session.Store;
 
   constructor() {
     this.sessionStore = new MemoryStore({
@@ -57,17 +56,12 @@ export class DatabaseStorage implements IStorage {
     return user || undefined;
   }
 
-  async getUserByEmail(email: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.email, email));
-    return user || undefined;
-  }
 
   async createUser(userData: InsertUser & { passwordHash: string }): Promise<User> {
     const [user] = await db
       .insert(users)
       .values({
         username: userData.username,
-        email: userData.email,
         passwordHash: userData.passwordHash,
       })
       .returning();
@@ -207,7 +201,7 @@ export class DatabaseStorage implements IStorage {
           passive: { winRateBoost: 0, coinsPerHour: 50 },
           active: { useCooldown: 0, duration: 0, effect: "" }
         },
-        stock: Infinity,
+        stock: 2147483647,
         currentPrice: 5000
       },
       {
