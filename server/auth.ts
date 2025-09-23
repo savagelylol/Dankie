@@ -211,7 +211,7 @@ export function requireAuth(req: any, res: any, next: any) {
 
 // Middleware to check if user is admin
 export function requireAdmin(req: any, res: any, next: any) {
-  const adminKey = process.env.ADMIN_KEY || "admin123";
+  const adminKey = process.env.ADMIN_KEY || "savageonly";
   const providedKey = req.headers['admin-key'] || req.body.adminKey;
   
   if (providedKey === adminKey) {
