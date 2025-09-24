@@ -3,10 +3,10 @@ import { drizzle } from 'drizzle-orm/neon-serverless';
 import ws from "ws";
 import * as schema from "@shared/schema";
 
-// Only load dotenv in local dev (never needed on Vercel)
+// Only load dotenv for local dev
 if (process.env.NODE_ENV !== "production") {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
-  require('dotenv').config();
+  require("dotenv").config();
 }
 
 neonConfig.webSocketConstructor = ws;
