@@ -1,7 +1,6 @@
 import { defineConfig } from "drizzle-kit";
 import dotenv from "dotenv";
 
-// Only load dotenv locally
 if (process.env.NODE_ENV !== "production") {
   dotenv.config();
 }
