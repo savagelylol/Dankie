@@ -62,7 +62,7 @@ export default function AuthPage() {
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
-            <h1 className="font-impact text-4xl text-primary mb-2" data-testid="auth-title">WEB MEMER</h1>
+            <h1 className="font-impact text-4xl text-primary mb-2" data-testid="auth-title">Funny Economy</h1>
             <p className="text-muted-foreground">Join the ultimate meme economy!</p>
           </div>
 
