@@ -4,14 +4,14 @@ import ws from "ws";
 import * as schema from "@shared/schema";
 import dotenv from 'dotenv';
 
-// Load environment variables
+// Load environment variables (for local dev, ignored on Vercel)
 dotenv.config();
 
 neonConfig.webSocketConstructor = ws;
 
 if (!process.env.DATABASE_URL) {
   throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
+    "DATABASE_URL must be set. Did you forget to set the environment variable on your host?",
   );
 }
 
