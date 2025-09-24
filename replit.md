@@ -1,8 +1,8 @@
-# Web Memer - Full-Stack Meme Economy Game
+# Funny Economy - Full-Stack Meme Economy Game
 
 ## Overview
 
-Web Memer is a full-stack web application that emulates the core functionality of the Dank Memer Discord bot, adapted for a browser-based experience. This is a meme-themed economy game where users can earn coins, play games, manage inventories, and interact in a virtual economy system. The application features a dark-themed, meme-aesthetic UI with comprehensive gaming and social features.
+Funny Economy is a full-stack web application that emulates the core functionality of the Dank Memer Discord bot, adapted for a browser-based experience. This is a meme-themed economy game where users can earn coins, play games, manage inventories, and interact in a virtual economy system. The application features a dark-themed, meme-aesthetic UI with comprehensive gaming and social features.
 
 ## User Preferences
 

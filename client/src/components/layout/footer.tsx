@@ -40,7 +40,7 @@ export default function Footer() {
             </Link>
           </div>
           <p className="text-muted-foreground text-sm">
-            © 2024 Web Memer - Your favorite meme economy game! 🚀
+            © 2024 Funny Economy - Your favorite meme economy game! 🚀
           </p>
           <p className="text-muted-foreground text-xs">
             Built with ❤️ and lots of memes | Not affiliated with Dank Memer

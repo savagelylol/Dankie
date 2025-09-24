@@ -169,7 +169,7 @@ export default function AuthPage() {
                       disabled={registerMutation.isPending}
                       data-testid="button-register"
                     >
-                      {registerMutation.isPending ? "Creating account..." : "Join Web Memer! 🎉"}
+                      {registerMutation.isPending ? "Creating account..." : "Join Funny Economy! 🎉"}
                     </Button>
                   </form>
                 </CardContent>

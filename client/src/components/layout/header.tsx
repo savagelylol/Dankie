@@ -50,7 +50,7 @@ export default function Header() {
           {/* Logo */}
           <div className="flex items-center space-x-4">
             <Link href="/" className="flex items-center space-x-4" data-testid="logo-link">
-              <h1 className="font-impact text-3xl text-primary glow-primary">WEB MEMER</h1>
+              <h1 className="font-impact text-3xl text-primary glow-primary">Funny Economy</h1>
               <span className="text-muted-foreground text-sm hidden md:block">
                 💰 Your Meme Economy Awaits!
               </span>

@@ -729,7 +729,7 @@ export function registerRoutes(app: Express): Server {
           case 'join':
             ws.send(JSON.stringify({
               type: 'system',
-              message: 'Connected to Web Memer chat!'
+              message: 'Connected to Funny Economy chat!'
             }));
             break;
         }

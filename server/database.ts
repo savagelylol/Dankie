@@ -1,4 +1,4 @@
-// Replit Database wrapper for Web Memer
+// Replit Database wrapper for Funny Economy
 class ReplitDatabase {
   private store = new Map<string, any>();
   private cache = new Map<string, any>();

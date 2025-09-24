@@ -70,7 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     onSuccess: (user: SelectUser) => {
       queryClient.setQueryData(["/api/user"], user);
       toast({
-        title: "Welcome to Web Memer!",
+        title: "Welcome to Funny Economy!",
         description: `Account created for ${user.username}! Enjoy your 500 welcome coins! 💰`,
       });
     },
